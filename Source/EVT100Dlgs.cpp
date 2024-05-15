@@ -31,6 +31,8 @@
 static char BASED_CODE THIS_FILE[] = __FILE__;
 #endif
 
+/////////////////////////////////////////////////////////////////////////////
+
 void PASCAL DDX_HexText(CDataExchange *pDX, int nIDC, long& value)
 {
 HWND hWndCtrl =pDX->PrepareEditCtrl(nIDC);
@@ -58,7 +60,8 @@ void PASCAL DDV_HexText( CDataExchange *pDX, long& value, BOOL &flag)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CAboutBox dialog
+
+/////////////////////////////////////////////////////////////////////////////
 
 CAboutDlg::CAboutDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CAboutDlg::IDD, pParent)
@@ -81,7 +84,6 @@ BOOL CAboutDlg::OnInitDialog()
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CAboutBitmap
 
 BEGIN_MESSAGE_MAP(CAboutBitmap, CButton)
 	ON_WM_DRAWITEM()
@@ -104,23 +106,23 @@ CBitmap Bitmap;
 }
 
 /////////////////////////////////////////////////////////////////////////////
-// CEVTSettingsDlg dialog
 
+/////////////////////////////////////////////////////////////////////////////
 
 CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CEVTSettingsDlg::IDD, pParent)
 {
-	m_bAutoWrap = FALSE;
-	m_sBaud = _T("");
-	m_sDataBits = _T("");
-	m_bDTRDSR = FALSE;
-	m_bLocalEcho = FALSE;
-	m_bNewLine = FALSE;
-	m_nParity = -1;
-	m_bRTSCTS = FALSE;
-	m_nStopBits = -1;
-	m_bXONXOFF = FALSE;
-	m_sPort = _T("");
+	m_LineWrap = FALSE;
+	m_Baud = _T("");
+	m_DataBits = _T("");
+	m_DTRDSR = FALSE;
+	m_LocalEcho = FALSE;
+	m_NewLine = FALSE;
+	m_Parity = -1;
+	m_RTSCTS = FALSE;
+	m_StopBits = -1;
+	m_XONXOFF = FALSE;
+	m_SerialPort = _T("");
 	memset(&m_lfFont, 0, sizeof(m_lfFont));
 	m_lfFont.lfHeight = -9;
 	m_lfFont.lfWeight = FW_DONTCARE;
@@ -129,31 +131,31 @@ CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 	m_IsConnected = FALSE;
 }
 
+/////////////////////////////////////////////////////////////////////////////
 
 void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	DDX_Check(pDX, IDC_AUTOWRAP, m_bAutoWrap);
-	DDX_CBString(pDX, IDC_BAUDCB, m_sBaud);
-	DDX_CBString(pDX, IDC_DATABITSCB, m_sDataBits);
-	DDX_Check(pDX, IDC_DTRDSR, m_bDTRDSR);
-	DDX_Check(pDX, IDC_LOCALECHO, m_bLocalEcho);
-	DDX_Check(pDX, IDC_NEWLINE, m_bNewLine);
-	DDX_CBIndex(pDX, IDC_PARITYCB, m_nParity);
-	DDX_Check(pDX, IDC_RTSCTS, m_bRTSCTS);
-	DDX_CBIndex(pDX, IDC_STOPBITSCB, m_nStopBits);
-	DDX_Check(pDX, IDC_XONXOFF, m_bXONXOFF);
-	DDX_CBString(pDX, IDC_PORTCB, m_sPort);
+	DDX_Check(pDX, IDC_AUTOWRAP, m_LineWrap);
+	DDX_CBString(pDX, IDC_BAUDCB, m_Baud);
+	DDX_CBString(pDX, IDC_DATABITSCB, m_DataBits);
+	DDX_Check(pDX, IDC_DTRDSR, m_DTRDSR);
+	DDX_Check(pDX, IDC_LOCALECHO, m_LocalEcho);
+	DDX_Check(pDX, IDC_NEWLINE, m_NewLine);
+	DDX_CBIndex(pDX, IDC_PARITYCB, m_Parity);
+	DDX_Check(pDX, IDC_RTSCTS, m_RTSCTS);
+	DDX_CBIndex(pDX, IDC_STOPBITSCB, m_StopBits);
+	DDX_Check(pDX, IDC_XONXOFF, m_XONXOFF);
+	DDX_CBString(pDX, IDC_PORTCB, m_SerialPort);
 }
 
+/////////////////////////////////////////////////////////////////////////////
 
 BEGIN_MESSAGE_MAP(CEVTSettingsDlg, CDialog)
-	ON_BN_CLICKED(IDC_FONT, OnFont)
 END_MESSAGE_MAP()
 
 
 /////////////////////////////////////////////////////////////////////////////
-// CEVTSettingsDlg message handlers
 
 BOOL CEVTSettingsDlg::OnInitDialog() 
 {
@@ -161,16 +163,4 @@ BOOL CEVTSettingsDlg::OnInitDialog()
 	((CComboBox *)GetDlgItem(IDC_PORTCB))->EnableWindow(!m_IsConnected);
 	return TRUE;
 }
-
-void CEVTSettingsDlg::OnFont() 
-{
-LOGFONT newlf;
-
-	newlf = m_lfFont;
-	CFontDialog fontDialog(&newlf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT | CF_FIXEDPITCHONLY);
-	if(fontDialog.DoModal() == IDOK){
-		m_lfFont = newlf;
-	}
-}
-
 

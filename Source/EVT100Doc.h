@@ -34,17 +34,17 @@ class CEVT100Doc : public CDocument
 protected: 
 	CEVT100Doc();
 	DECLARE_DYNCREATE(CEVT100Doc)
- 	CString				m_sPort;
-	BOOL					m_bAutoWrap;
-	long					m_nBaud;
-	int						m_nDataBits;
-	BOOL					m_bDTRDSR;
-	BOOL					m_bLocalEcho;
-	BOOL					m_bNewLine;
-	int						m_nParity;
-	BOOL					m_bRTSCTS;
-	int						m_nStopBits;
-	BOOL					m_bXONXOFF;
+ 	CString				m_SerialPort;
+	long					m_Baud;
+	int						m_DataBits;
+	BOOL					m_DTRDSR;
+	BOOL					m_LocalEcho;
+	BOOL					m_LineWrap;
+	BOOL					m_NewLine;
+	int						m_Parity;
+	BOOL					m_RTSCTS;
+	int						m_StopBits;
+	BOOL					m_XONXOFF;
   DWORD					m_EventType;
   BYTE*					m_InBlock;
 	bool					m_Escape;
@@ -53,6 +53,7 @@ protected:
 	int						m_ArgCount;
 	bool					m_Pause;
 	bool					m_ShowCodes;
+	UINT					m_ClientWidth;
 
 protected: 
 	void					GetSystemVars();
@@ -63,18 +64,17 @@ protected:
 public:
 	bool					m_IsConnected;
 	HANDLE				m_idComDev;
-	CEVT100View*	m_pTermWnd;		// The view window
+	CEVT100View		*m_pTermWnd;		// The view window
 	HANDLE				m_hPostEvent;	// To sync WM_COMMNOTIFY processing
 	CWinThread		*m_pThread;
 	OVERLAPPED		m_osWrite, m_osRead;
 	LOGFONT				m_lfFont;
 	CSize					m_CharSize;
 	CLineObj			m_Screen[MAXROW];
-	char*					m_pLineBuf;
+	char					*m_pLineBuf;
 	CPoint				m_CursorPos;
 	CPoint				m_CursorSave;
-	int						m_nRow;
-	int						m_nTopRow;
+	int						m_TopRow;
 	int						m_Scrolled;
 	CString				Title;
 
@@ -109,6 +109,8 @@ protected:
 	afx_msg void	OnPause();
 	afx_msg void	OnUpdatePause(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
+public:
+	afx_msg void OnViewSetfont();
 };
 
 /////////////////////////////////////////////////////////////////////////////

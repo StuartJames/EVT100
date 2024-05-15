@@ -46,12 +46,12 @@ constexpr auto ATTR_ITALIC	          = 0x00000008;
 constexpr auto ATTR_ULINE							= 0x00000010;
 constexpr auto ATTR_BLINK							= 0x00000020;
 constexpr auto ATTR_REVERSE						= 0x00000040;
-constexpr auto ATTR_TCOLOR	          = 0x00000700;
+constexpr auto ATTR_FCOLOR	          = 0x00000700;
 constexpr auto ATTR_BCOLOR	          = 0x00070000;
-constexpr auto ATTR_TPALLET           = 0x0000FF00;
+constexpr auto ATTR_FPALLET           = 0x0000FF00;
 constexpr auto ATTR_BPALLET           = 0x00FF0000;
 constexpr auto ATTR_DEFAULT           = 0x00000201; // default pale green text on black background
-constexpr auto ATTR_TEXT_SHIFT        = 8;
+constexpr auto ATTR_FORE_SHIFT        = 8;
 constexpr auto ATTR_BACK_SHIFT        = 16;
 
 // ASCII characters that receive special processing

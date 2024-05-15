@@ -143,36 +143,38 @@ COMSTAT CommStatus;
 IMPLEMENT_DYNCREATE(CEVT100Doc, CDocument)
 
 BEGIN_MESSAGE_MAP(CEVT100Doc, CDocument)
-	ON_COMMAND(IDM_SETTINGS, OnEditSettings)
+	ON_COMMAND(IDM_FILE_SETTINGS, OnEditSettings)
 	ON_COMMAND(IDM_VIEW_CLEAR, OnViewClear)
 	ON_UPDATE_COMMAND_UI(IDM_VIEW_CLEAR, OnUpdateViewClear)
 	ON_COMMAND(IDM_VIEW_PAUSE, OnPause)
 	ON_UPDATE_COMMAND_UI(IDM_VIEW_PAUSE, OnUpdatePause)
+  ON_COMMAND(ID_VIEW_SETFONT, &CEVT100Doc::OnViewSetfont)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 
 CEVT100Doc::CEVT100Doc()
 {
-  m_bAutoWrap = TRUE;
-  m_nBaud = 9600;
-  m_nDataBits = 8;
-  m_bDTRDSR = FALSE;
-  m_bLocalEcho = FALSE;
-  m_bNewLine = FALSE;
-  m_nParity = 0;
-  m_bRTSCTS = TRUE;
-  m_nStopBits = 0;
-  m_bXONXOFF = FALSE;
+  m_LineWrap = TRUE;
+  m_Baud = 9600;
+  m_DataBits = 8;
+  m_DTRDSR = FALSE;
+  m_LocalEcho = FALSE;
+  m_NewLine = FALSE;
+  m_Parity = 0;
+  m_RTSCTS = TRUE;
+  m_StopBits = 0;
+  m_XONXOFF = FALSE;
   m_IsConnected = FALSE;
   m_Pause = false;
   m_ShowCodes = false;
-  m_sPort="COM1";
+  m_SerialPort="COM1";
   ZeroMemory(&m_lfFont, sizeof(m_lfFont));
-  m_lfFont.lfHeight = -9;
+  m_lfFont.lfHeight = -13;
   m_lfFont.lfWeight = FW_DONTCARE;
+  m_lfFont.lfItalic = 255;
   m_lfFont.lfPitchAndFamily = FIXED_PITCH | FF_MODERN;
-  strcpy_s(m_lfFont.lfFaceName, sizeof(m_lfFont.lfFaceName), "FixedSys");
+  strcpy_s(m_lfFont.lfFaceName, sizeof(m_lfFont.lfFaceName), "Consolas");
   ZeroMemory(&m_osRead, sizeof(OVERLAPPED));
   ZeroMemory(&m_osWrite, sizeof(OVERLAPPED));
   m_hPostEvent = NULL;
@@ -180,10 +182,11 @@ CEVT100Doc::CEVT100Doc()
   m_pTermWnd = NULL;
   m_CursorPos.SetPoint(0, 0);
   m_CursorSave.SetPoint(0, 0);
-  m_nTopRow = 0;
+  m_TopRow = 0;
   m_CharSize.cx = 8;
   m_CharSize.cy = 15;
   m_Scrolled = 0;
+  m_ClientWidth = MAXCOL;
   m_InBlock = new BYTE[MAXBLOCK + 1];
   m_Escape = false;
   m_ArgCount = 0;
@@ -223,13 +226,13 @@ char temp[10];
   CString strBuffer = AfxGetApp()->GetProfileString(szSettings, szVariables);
   if (strBuffer.IsEmpty()) return;
   int nRead = sscanf_s(strBuffer, szFormat,
-    &m_bXONXOFF, &m_bLocalEcho,
-    &m_bNewLine, &m_bAutoWrap,
-    &m_bRTSCTS, &m_nDataBits,
-    &m_bDTRDSR, &m_nParity,
-    &m_nStopBits, &m_nBaud,
+    &m_XONXOFF, &m_LocalEcho,
+    &m_NewLine, &m_LineWrap,
+    &m_RTSCTS, &m_DataBits,
+    &m_DTRDSR, &m_Parity,
+    &m_StopBits, &m_Baud,
     &temp, 10);
-  if(strlen(temp) > 3 ) m_sPort = temp;
+  if(strlen(temp) > 3 ) m_SerialPort = temp;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -239,12 +242,12 @@ void CEVT100Doc::SaveSystemVars()
 char szBuffer[100];
 
   sprintf_s(szBuffer, sizeof(szBuffer), szFormat,
-    m_bXONXOFF, m_bLocalEcho,
-    m_bNewLine, m_bAutoWrap,
-    m_bRTSCTS, m_nDataBits,
-    m_bDTRDSR, m_nParity,
-    m_nStopBits, m_nBaud,
-    (const char *)m_sPort);
+    m_XONXOFF, m_LocalEcho,
+    m_NewLine, m_LineWrap,
+    m_RTSCTS, m_DataBits,
+    m_DTRDSR, m_Parity,
+    m_StopBits, m_Baud,
+    (const char *)m_SerialPort);
   AfxGetApp()->WriteProfileString(szSettings, szVariables, szBuffer);
   WriteProfileFont(&m_lfFont);
 }
@@ -311,7 +314,7 @@ CString cstr;
   firstViewPos = GetFirstViewPosition();
   pView = (CEVT100View *)GetNextView(firstViewPos);
   pView->SetFont(&m_lfFont);
-	cstr.Format(_T("\\\\.\\%s"), m_sPort);
+	cstr.Format(_T("\\\\.\\%s"), m_SerialPort);
 	if((m_idComDev = CreateFile(cstr, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE){
 		DWORD Error = GetLastError();
 		return false;
@@ -345,7 +348,7 @@ CString cstr;
   if(m_IsConnected){
     m_CurrentAttr = ATTR_DEFAULT;
     pView->SendMessage(WM_SETFOCUS);
-    ((CMainFrame*)AfxGetMainWnd())->SetWindowTitle(m_sPort);
+    ((CMainFrame*)AfxGetMainWnd())->SetWindowTitle(m_SerialPort);
   }
   return m_IsConnected;
 }
@@ -359,10 +362,10 @@ DCB dcb;
 	ZeroMemory(&dcb,sizeof(dcb));
   dcb.DCBlength = sizeof(DCB);
   if(!GetCommState(m_idComDev, &dcb)) return false;
-  dcb.BaudRate = m_nBaud;
-  dcb.ByteSize = m_nDataBits;
+  dcb.BaudRate = m_Baud;
+  dcb.ByteSize = m_DataBits;
   dcb.fParity = TRUE;
-  switch (m_nParity){
+  switch (m_Parity){
     case 0:
    		dcb.Parity = NOPARITY;
 	    dcb.fParity = FALSE;
@@ -373,18 +376,18 @@ DCB dcb;
     case 4: dcb.Parity = SPACEPARITY; break;
     default: ASSERT(FALSE);
   }
-  switch (m_nStopBits){
+  switch (m_StopBits){
   	case 0: dcb.StopBits = ONESTOPBIT; break;
 	  case 1: dcb.StopBits = ONE5STOPBITS; break;
   	case 2: dcb.StopBits = TWOSTOPBITS; break;
 	  default: ASSERT(FALSE);
   }
   dcb.fOutxDsrFlow = FALSE;
-  dcb.fDsrSensitivity = m_bDTRDSR;
-  dcb.fDtrControl = m_bDTRDSR ? DTR_CONTROL_HANDSHAKE : DTR_CONTROL_ENABLE;
-  dcb.fOutxCtsFlow = m_bRTSCTS;
-  dcb.fRtsControl = m_bRTSCTS ? RTS_CONTROL_HANDSHAKE : RTS_CONTROL_ENABLE;
-  dcb.fInX = dcb.fOutX = m_bXONXOFF;
+  dcb.fDsrSensitivity = m_DTRDSR;
+  dcb.fDtrControl = m_DTRDSR ? DTR_CONTROL_HANDSHAKE : DTR_CONTROL_ENABLE;
+  dcb.fOutxCtsFlow = m_RTSCTS;
+  dcb.fRtsControl = m_RTSCTS ? RTS_CONTROL_HANDSHAKE : RTS_CONTROL_ENABLE;
+  dcb.fInX = dcb.fOutX = m_XONXOFF;
   dcb.XonChar = ASCII_XON;
   dcb.XoffChar = ASCII_XOFF;
   dcb.XonLim = 100;
@@ -536,7 +539,7 @@ char *pToken = nullptr, *pNextToken = nullptr;
 				  m_Escape = true;
           break;
         case ASCII_CR:
-					  m_CursorPos.x = 0;
+					m_CursorPos.x = 0;
 				  break;
         case ASCII_BEL:
       	  break;
@@ -562,7 +565,10 @@ char *pToken = nullptr, *pNextToken = nullptr;
         default:
        	  m_pLineBuf[m_CursorPos.x++] = (lpMessage[i] & 0x7f);
        	  m_pLineBuf[m_CursorPos.x] = 0;
-      	  if(m_CursorPos.x >= MAXCOL) FormatScreenData("\n");
+      	  if(m_CursorPos.x >= MAXCOL){
+            if(m_LineWrap) FormatScreenData("\n");          // start a new line
+            else --m_CursorPos.x;                           // overwrite last character
+          }
 //			 	  m_pTermWnd->Invalidate(FALSE);
       	  break;
       }
@@ -601,6 +607,10 @@ char *pToken = nullptr, *pNextToken = nullptr;
           m_Escape = false;
           break;
         }
+        case 'c':
+          SendHostMessage("\x1b[?1;1c");
+          m_Escape = false;
+          break;
         case 	'D':{       // Cursor left
           pToken = strtok_s(m_EscapeArgs, "[;", &pNextToken); // get a token
           if(pToken != nullptr){     
@@ -620,13 +630,19 @@ char *pToken = nullptr, *pNextToken = nullptr;
           m_Escape = false;
           break;
         }
-        case 	'G':
-        case 	'f':{       // ASCII character set
+        case 	'f':       // ASCII character set
+        case 	'G':{
           m_Escape = false;
           break;
         }
         case 	'H':{       // Cursor home
           m_CursorPos.x = 0;
+          m_Escape = false;
+          break;
+        }
+       case 	'h':{       
+           pToken = strtok_s(m_EscapeArgs, "[;", &pNextToken); // get a token
+          if(*pToken == '7') m_LineWrap = TRUE;      // Enable line wrap
           m_Escape = false;
           break;
         }
@@ -656,21 +672,9 @@ char *pToken = nullptr, *pNextToken = nullptr;
           m_Escape = false;
           break;
         }
-        case 	'S':{
-          m_Escape = false;
-          break;
-        }
-        case 	'T':{
-          m_Escape = false;
-          break;
-        }
-        case 	's':{
-          m_CursorSave = m_CursorPos;
-          m_Escape = false;
-          break;
-        }
-        case 	'u':{
-          m_CursorPos = m_CursorSave;
+       case 	'l':{       
+           pToken = strtok_s(m_EscapeArgs, "[;", &pNextToken); // get a token
+          if(*pToken == '7') m_LineWrap = FALSE;      // Enable line wrap
           m_Escape = false;
           break;
         }
@@ -686,7 +690,8 @@ char *pToken = nullptr, *pNextToken = nullptr;
             else if(j == 5) m_CurrentAttr |= ATTR_BLINK;
             else if(j == 7) m_CurrentAttr |= ATTR_REVERSE;
             else if(j >= 30 && j <=37){
-              m_CurrentAttr = (m_CurrentAttr & ATTR_TPALLET) | ((j - 30) << ATTR_TEXT_SHIFT); // set text colour
+              m_CurrentAttr = (m_CurrentAttr & ~ATTR_FPALLET) | ((j - 30) << ATTR_FORE_SHIFT); // set text colour
+//              TRACE("m 0x%x | %d.\n", m_CurrentAttr, atoi(pToken));
             }
             else if(j == 38){                                                   // set text colour
   						pToken = strtok_s(nullptr, "[;", &pNextToken);
@@ -694,12 +699,13 @@ char *pToken = nullptr, *pNextToken = nullptr;
               if(k == 2) break;                                                 // Set text colour to an RGB value. Not serviced
               else if(k == 5){                                                  // Set text colour to index n in a 256-colour palette 
     						pToken = strtok_s(nullptr, "[;", &pNextToken);
-                m_CurrentAttr = (m_CurrentAttr & ATTR_TPALLET) | ((atoi(pToken) << ATTR_TEXT_SHIFT)); 
+                m_CurrentAttr = (m_CurrentAttr & ~ATTR_FPALLET) | ((atoi(pToken) << ATTR_FORE_SHIFT)); 
+//                TRACE("m5 0x%x | %d.\n", m_CurrentAttr, atoi(pToken));
               }
               else break;                                                       // error in control arguments
             }
             else if(j >= 40 && j <=47){                                          // set background colour
-              m_CurrentAttr = (m_CurrentAttr & ATTR_BPALLET) | ((j - 40) << ATTR_BACK_SHIFT);
+              m_CurrentAttr = (m_CurrentAttr & ~ATTR_BPALLET) | ((j - 40) << ATTR_BACK_SHIFT);
             }
             else if(j == 48){                                                   // set background colour
   						pToken = strtok_s(nullptr, "[;", &pNextToken);
@@ -707,20 +713,20 @@ char *pToken = nullptr, *pNextToken = nullptr;
               if(k == 2) break;                                                 // Set background colour to an RGB value. Not serviced
               else if(k == 5){                                                  // Set background colour to index n in a 256-colour palette 
     						pToken = strtok_s(nullptr, "[;", &pNextToken);
-                m_CurrentAttr = (m_CurrentAttr & ATTR_BPALLET) | (atoi(pToken) << ATTR_BACK_SHIFT); 
+                m_CurrentAttr = (m_CurrentAttr & ~ATTR_BPALLET) | (atoi(pToken) << ATTR_BACK_SHIFT); 
               }
               else break;                                                       // error in control arguments
             }
-            else if(j >= 90 && j <= 97){                                        // set text colour
-              m_CurrentAttr = (m_CurrentAttr & ATTR_TPALLET) | ((j - 30) << ATTR_TEXT_SHIFT); 
+            else if(j >= 90 && j <= 97){                                        // set bright text colour
+              m_CurrentAttr = (m_CurrentAttr & ~ATTR_FPALLET) | ((j - 82) << ATTR_FORE_SHIFT); 
             }
             else if(j >= 100 && j <= 107){                                      // set bright background colour
-              m_CurrentAttr = (m_CurrentAttr & ATTR_BPALLET) | ((j - 40) << ATTR_BACK_SHIFT);
+              m_CurrentAttr = (m_CurrentAttr & ~ATTR_BPALLET) | ((j - 92) << ATTR_BACK_SHIFT);
             }
 						pToken = strtok_s(nullptr, "[;", &pNextToken);
           }
           m_Screen[m_CursorPos.y].PushAttr(m_CurrentAttr | ATTR_MARKER, m_CursorPos.x);  // save the attribute change points
-          TRACE("m:%d-%d :%d.\n", m_CursorPos.y, m_CursorPos.x, m_CurrentAttr);
+//          TRACE("m:%d-%d :%d.\n", m_CursorPos.y, m_CursorPos.x, m_CurrentAttr);
           m_Escape = false;
           break;
         }
@@ -736,10 +742,24 @@ char *pToken = nullptr, *pNextToken = nullptr;
           m_Escape = false;
           break;
         }
-        case 'c':
-          SendHostMessage("\x1b[?1;1c");
+        case 	'S':{
           m_Escape = false;
           break;
+        }
+        case 	's':{
+          m_CursorSave = m_CursorPos;
+          m_Escape = false;
+          break;
+        }
+        case 	'T':{
+          m_Escape = false;
+          break;
+        }
+        case 	'u':{
+          m_CursorPos = m_CursorSave;
+          m_Escape = false;
+          break;
+        }
         case 'Z':{                                        // Identify compatibilities
           SendHostMessage("\x1b[/Z");
           m_Escape = false;
@@ -757,7 +777,7 @@ char *pToken = nullptr, *pNextToken = nullptr;
     }
     i++;
   }
-  m_pTermWnd->ScrollToCursor(true);
+  m_ClientWidth = m_pTermWnd->ScrollToCursor(true);
   return true;
 }
 
@@ -767,8 +787,8 @@ void CEVT100Doc::IncLineIndex(int Inc)
 {
   for(int i = 0; i < Inc; ++i){
     m_CursorPos.y = (m_CursorPos.y + 1) % MAXROW;
-    if(m_CursorPos.y == m_nTopRow){
-      m_nTopRow = (m_nTopRow + 1) % MAXROW;
+    if(m_CursorPos.y == m_TopRow){
+      m_TopRow = (m_TopRow + 1) % MAXROW;
       m_Scrolled++;
     }
   }
@@ -779,7 +799,7 @@ void CEVT100Doc::IncLineIndex(int Inc)
 void CEVT100Doc::DecLineIndex(int Dec)
 {
   for(int i = 0; i < Dec; ++i){
-    if(m_CursorPos.y == m_nTopRow) return;
+    if(m_CursorPos.y == m_TopRow) return;
     m_CursorPos.y = (m_CursorPos.y - 1) % MAXROW;
   }
 }
@@ -791,33 +811,33 @@ void CEVT100Doc::OnEditSettings()
 char buf[34];
 CEVTSettingsDlg SettingsDlg;
 
-  SettingsDlg.m_bAutoWrap = m_bAutoWrap;
-  _itoa_s(m_nBaud, buf, 34, 10);
-  SettingsDlg.m_sBaud = buf;
-  _itoa_s(m_nDataBits, buf, 34, 10);
-  SettingsDlg.m_sDataBits = buf;
-  SettingsDlg.m_bDTRDSR = m_bDTRDSR;
-  SettingsDlg.m_bLocalEcho = m_bLocalEcho;
-  SettingsDlg.m_bNewLine = m_bNewLine;
-  SettingsDlg.m_nParity = m_nParity;
-  SettingsDlg.m_sPort = m_sPort;
-  SettingsDlg.m_bRTSCTS = m_bRTSCTS;
-  SettingsDlg.m_nStopBits = m_nStopBits;
-  SettingsDlg.m_bXONXOFF = m_bXONXOFF;
+  SettingsDlg.m_LineWrap = m_LineWrap;
+  _itoa_s(m_Baud, buf, 34, 10);
+  SettingsDlg.m_Baud = buf;
+  _itoa_s(m_DataBits, buf, 34, 10);
+  SettingsDlg.m_DataBits = buf;
+  SettingsDlg.m_DTRDSR = m_DTRDSR;
+  SettingsDlg.m_LocalEcho = m_LocalEcho;
+  SettingsDlg.m_NewLine = m_NewLine;
+  SettingsDlg.m_Parity = m_Parity;
+  SettingsDlg.m_SerialPort = m_SerialPort;
+  SettingsDlg.m_RTSCTS = m_RTSCTS;
+  SettingsDlg.m_StopBits = m_StopBits;
+  SettingsDlg.m_XONXOFF = m_XONXOFF;
   SettingsDlg.m_lfFont = m_lfFont;
   SettingsDlg.m_IsConnected = m_IsConnected;
   if (SettingsDlg.DoModal() == IDOK){
-    m_bAutoWrap = SettingsDlg.m_bAutoWrap;
-    m_nBaud = atoi(SettingsDlg.m_sBaud);
-    m_nDataBits = atoi(SettingsDlg.m_sDataBits);
-    m_bDTRDSR = SettingsDlg.m_bDTRDSR;
-    m_bLocalEcho = SettingsDlg.m_bLocalEcho;
-    m_bNewLine = SettingsDlg.m_bNewLine;
-    m_nParity = SettingsDlg.m_nParity;
-    if (!m_IsConnected) m_sPort = SettingsDlg.m_sPort;
-    m_bRTSCTS = SettingsDlg.m_bRTSCTS;
-    m_nStopBits = SettingsDlg.m_nStopBits;
-    m_bXONXOFF = SettingsDlg.m_bXONXOFF;
+    m_LineWrap = SettingsDlg.m_LineWrap;
+    m_Baud = atoi(SettingsDlg.m_Baud);
+    m_DataBits = atoi(SettingsDlg.m_DataBits);
+    m_DTRDSR = SettingsDlg.m_DTRDSR;
+    m_LocalEcho = SettingsDlg.m_LocalEcho;
+    m_NewLine = SettingsDlg.m_NewLine;
+    m_Parity = SettingsDlg.m_Parity;
+    if (!m_IsConnected) m_SerialPort = SettingsDlg.m_SerialPort;
+    m_RTSCTS = SettingsDlg.m_RTSCTS;
+    m_StopBits = SettingsDlg.m_StopBits;
+    m_XONXOFF = SettingsDlg.m_XONXOFF;
      m_lfFont = SettingsDlg.m_lfFont;
     SetFontSize();
     POSITION firstViewPos = GetFirstViewPosition();
@@ -856,7 +876,7 @@ void CEVT100Doc::OnViewClear()
   if(m_pTermWnd == NULL) return;
 	for(int i = 0; i < MAXROW; i++) m_Screen[i].Clear();
   m_CursorPos.SetPoint(0, 0);
-  m_nTopRow = 0;
+  m_TopRow = 0;
   m_Scrolled = 0;
   m_pLineBuf = m_Screen[m_CursorPos.y].m_Str;
   m_pTermWnd->SetSizes();
@@ -883,4 +903,16 @@ void CEVT100Doc::OnUpdatePause(CCmdUI* pCmdUI)
 {
   pCmdUI->SetCheck(m_Pause);
 	pCmdUI->Enable(m_IsConnected);
+}
+
+
+void CEVT100Doc::OnViewSetfont()
+{
+LOGFONT newlf;
+
+	newlf = m_lfFont;
+	CFontDialog fontDialog(&newlf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT | CF_FIXEDPITCHONLY);
+	if(fontDialog.DoModal() == IDOK){
+		m_lfFont = newlf;
+	}
 }

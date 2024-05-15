@@ -38,20 +38,22 @@ protected: // create from serialization only
 	DECLARE_DYNCREATE(CEVT100View)
 
 protected:
-	BOOL		m_bHasCaret;	// Set when text cursor is displayed
+	bool		m_CaretVisible;	// Set when text cursor is displayed
 	CFont*	m_pFont;
   int     m_CharWidth;
   int     m_CharHeight;
   BYTE*   m_InBlock;
 	POINT		m_CaretPos;
+	bool		m_BlinkChar;
 
 public:
 	CEVT100Doc* GetDocument();
 
 public:
-	void ScrollToCursor(bool CheckScroll = false);
+	UINT ScrollToCursor(bool CheckScroll = false);
+	void SetFontAttr(UINT Attr);
 	void SetFont(LOGFONT *lf);
-	void SetSizes();
+	UINT SetSizes();
 
 	public:
 	virtual void OnDraw(CDC* pDC);  // overridden to draw this view
@@ -73,6 +75,7 @@ protected:
 	afx_msg void OnSetFocus(CWnd* pOldWnd);
 	afx_msg void OnSize(UINT nType, int cx, int cy);
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
+	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg LRESULT OnCommNotify(WPARAM wParam, LPARAM lParam);
 	DECLARE_MESSAGE_MAP()
 };

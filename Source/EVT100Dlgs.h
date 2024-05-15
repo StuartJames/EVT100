@@ -69,17 +69,17 @@ public:
 	CEVTSettingsDlg(CWnd* pParent = NULL);   // standard constructor
 
 	enum { IDD = IDD_SETTINGS };
-	BOOL			m_bAutoWrap;
-	CString		m_sBaud;
-	CString		m_sDataBits;
-	BOOL			m_bDTRDSR;
-	BOOL			m_bLocalEcho;
-	BOOL			m_bNewLine;
-	int				m_nParity;
-	BOOL			m_bRTSCTS;
-  int				m_nStopBits;
-	BOOL			m_bXONXOFF;
-	CString		m_sPort;
+	BOOL			m_LineWrap;
+	CString		m_Baud;
+	CString		m_DataBits;
+	BOOL			m_DTRDSR;
+	BOOL			m_LocalEcho;
+	BOOL			m_NewLine;
+	int				m_Parity;
+	BOOL			m_RTSCTS;
+  int				m_StopBits;
+	BOOL			m_XONXOFF;
+	CString		m_SerialPort;
 	LOGFONT		m_lfFont;
 	BOOL			m_IsConnected;
 
@@ -89,6 +89,5 @@ protected:
 protected:
 
 	virtual BOOL OnInitDialog();
-	afx_msg void OnFont();
 	DECLARE_MESSAGE_MAP()
 };

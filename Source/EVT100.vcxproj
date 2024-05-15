@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectName>Evt100</ProjectName>
+    <ProjectName>EVT100</ProjectName>
     <ProjectGuid>{3E604FEE-D7B4-4C3A-AC53-6CF67E684B8C}</ProjectGuid>
     <RootNamespace>EVT100</RootNamespace>
     <Keyword>MFCProj</Keyword>
