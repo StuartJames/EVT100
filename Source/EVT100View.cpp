@@ -263,19 +263,19 @@ MSG msg;
 void CEVT100View::OnDraw(CDC* pDC)
 {
 CEVT100Doc *pDoc = GetDocument();
-CPoint ScrollPos;
-CRect rect;
-int nRow, nEndRow, nVertPos, nHorzPos;
+int nRow, nEndRow, nVertPos, nHorzPos, SegLength;
 UINT Attr = ATTR_DEFAULT, SegStart, SegEnd;
-int SegLength;
-TEXTMETRIC tm;
 COLORREF TextCol = RGBFromAnsi256(2);                                             // default to green text
 COLORREF BackCol = RGBFromAnsi256(0);                                             // on black background
+TEXTMETRIC tm;
+CFont *pOldFont = nullptr;
+CPoint ScrollPos;
+CRect rect;
 
   ASSERT_VALID(pDoc);
   rect = ((CPaintDC *)pDC)->m_ps.rcPaint;		                                      // Rectangle to be painted
 	CBrush backBrush(RGB(0, 0, 0));
-  CFont *pOldFont = pDC->SelectObject(m_pFont);
+  SetFont(pDC, pOldFont, 0);                                                      // set font
   pDC->GetTextMetrics(&tm);
   m_CharWidth=tm.tmAveCharWidth;
   m_CharHeight=tm.tmHeight;
@@ -288,7 +288,7 @@ COLORREF BackCol = RGBFromAnsi256(0);                                           
   pDC->SetTextColor(TextCol);                                                     // set default colours                   
   pDC->SetBkColor(BackCol);
   pDC->SetBkMode(OPAQUE);
-  for (; nRow <= nEndRow; nRow++){
+  for(; nRow <= nEndRow; nRow++){
     int nLine = (nRow + pDoc->m_TopRow) % MAXROW;
     nVertPos = nRow * m_CharHeight;
     rect.top = nVertPos;
@@ -300,7 +300,7 @@ COLORREF BackCol = RGBFromAnsi256(0);                                           
       int i = 0;
       pDoc->m_Screen[nLine].GetAttr(i++, &Attr, &SegStart);                       // get the first attribute
       do{
-        SetFontAttr(Attr);                                                        // set required font attributes
+        SetFont(pDC, pOldFont, Attr);                                             // set required font attributes
         if(((Attr & ATTR_REVERSE) > 0)){
           TextCol = RGBFromAnsi256((Attr >> ATTR_BACK_SHIFT) & 0xFF);             // just swap foreground and background colours
           BackCol = RGBFromAnsi256((Attr >> ATTR_FORE_SHIFT) & 0xFF);
@@ -384,16 +384,18 @@ RECT clientRect;
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CEVT100View::SetFontAttr(UINT Attr)
+void CEVT100View::SetFont(CDC* pDC, CFont *pOldFont, UINT Attr)
 {
 LOGFONT *pLF = &GetDocument()->m_lfFont;
 
+  pDC->SelectObject(pOldFont);
   pLF->lfUnderline = ((Attr & ATTR_ULINE) > 0) ? TRUE : FALSE;
   pLF->lfWeight = ((Attr & ATTR_BOLD) > 0) ? 700 : 400;
   pLF->lfItalic = ((Attr & ATTR_ITALIC) > 0) ? 255 : 0;
   if(m_pFont) delete m_pFont;
   m_pFont = new CFont;
   m_pFont->CreateFontIndirect(pLF);
+  pDC->SelectObject(m_pFont);
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -51,7 +51,7 @@ public:
 
 public:
 	UINT ScrollToCursor(bool CheckScroll = false);
-	void SetFontAttr(UINT Attr);
+	void SetFont(CDC* pDC, CFont *pOldFont, UINT Attr);
 	void SetFont(LOGFONT *lf);
 	UINT SetSizes();
 
