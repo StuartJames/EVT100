@@ -1,5 +1,5 @@
 //////////////////////////////////////////////////
-// CMemoryDC - memory DC
+// CMemDC - memory DC
 //
 // Author: Keith Rule
 // Email:  keithr@europa.com
@@ -23,7 +23,7 @@
 //
 //	Construction :
 //	|
-//	|	CMemoryDC pDC (dc, &drawRect, toMemDC) ;
+//	|	CMemDC pDC (dc, &drawRect, toMemDC) ;
 //	|	
 //	|	where:
 //	|		"dc"		- pointer to the CDC that is an argument to OnDraw
@@ -36,18 +36,17 @@
 
 #pragma once
 
- 
-class CMemoryDC : public CDC
+class CMemDC : public CDC
 {
 private:
   CBitmap		m_bitmap;		// Offscreen bitmap
-  CBitmap*	m_oldBitmap;	// bitmap originally found in CMemoryDC
+  CBitmap*	m_oldBitmap;	// bitmap originally found in CMemDC
   CDC*		m_pDC;			// Saves CDC passed in constructor
   CRect		m_rect;			// Rectangle of drawing area.
   BOOL		m_bMemDC;		// TRUE if CDC really is a Memory DC.
 public:
 
-  CMemoryDC(CDC* pDC, const CRect* pRect = NULL, bool boolToMemory = TRUE) : CDC()
+  CMemDC(CDC* pDC, const CRect* pRect = NULL, bool boolToMemory = TRUE) : CDC()
   {
     ASSERT(pDC != NULL);
 
@@ -81,7 +80,7 @@ public:
   }
 
 
-  ~CMemoryDC()
+  ~CMemDC()
   {
     if(m_bMemDC) {
       m_pDC->BitBlt(m_rect.left, m_rect.top, m_rect.Width(), m_rect.Height(), this, m_rect.left, m_rect.top, SRCCOPY);   // Copy the offscreen bitmap onto the screen.
@@ -93,13 +92,13 @@ public:
   }
 
   // Allow usage as a pointer	
-  CMemoryDC* operator->()
+  CMemDC* operator->()
   {
     return this;
   }
 
   // Allow usage as a pointer	
-  operator CMemoryDC*()
+  operator CMemDC*()
   {
     return this;
   }

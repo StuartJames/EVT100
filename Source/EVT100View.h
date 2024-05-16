@@ -44,16 +44,18 @@ protected:
   int     m_CharHeight;
   BYTE*   m_InBlock;
 	POINT		m_CaretPos;
-	bool		m_BlinkChar;
+	bool		m_BlinkText;
+	bool		m_IsErased;
+	bool		m_Pause;
 
 public:
 	CEVT100Doc* GetDocument();
 
 public:
-	UINT ScrollToCursor(bool CheckScroll = false);
+	void ScrollToCursor(bool CheckScroll = false);
 	void SetFont(CDC* pDC, CFont *pOldFont, UINT Attr);
 	void SetFont(LOGFONT *lf);
-	UINT SetSizes();
+	void SetSizes();
 
 	public:
 	virtual void OnDraw(CDC* pDC);  // overridden to draw this view
@@ -77,6 +79,8 @@ protected:
 	afx_msg BOOL OnEraseBkgnd(CDC* pDC);
 	afx_msg void OnTimer(UINT_PTR nIDEvent);
 	afx_msg LRESULT OnCommNotify(WPARAM wParam, LPARAM lParam);
+	afx_msg void	OnPause();
+	afx_msg void	OnUpdatePause(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
 };
 

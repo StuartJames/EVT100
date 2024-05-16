@@ -51,9 +51,7 @@ protected:
 	int						m_CurrentAttr;
 	char					m_EscapeArgs[MAX_ESC_ARGS + 1];
 	int						m_ArgCount;
-	bool					m_Pause;
 	bool					m_ShowCodes;
-	UINT					m_ClientWidth;
 
 protected: 
 	void					GetSystemVars();
@@ -106,8 +104,6 @@ protected:
 	afx_msg void	OnEditSettings();
 	afx_msg void	OnViewClear();
 	afx_msg void	OnUpdateViewClear(CCmdUI* pCmdUI);
-	afx_msg void	OnPause();
-	afx_msg void	OnUpdatePause(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
 public:
 	afx_msg void OnViewSetfont();

@@ -26,7 +26,8 @@
 #include "EVT100Doc.h"
 #include "EVT100View.h"
 #include "EVTColorPalette.h"
-#include "MemoryDC.h"
+#include "MemDC.h"
+
 
 #ifdef _DEBUG
 #define new DEBUG_NEW
@@ -47,6 +48,8 @@ BEGIN_MESSAGE_MAP(CEVT100View, CScrollView)
 	ON_WM_ERASEBKGND()
 	ON_MESSAGE(WM_COMMNOTIFY, OnCommNotify)
   ON_WM_TIMER()
+	ON_COMMAND(IDM_VIEW_PAUSE, OnPause)
+	ON_UPDATE_COMMAND_UI(IDM_VIEW_PAUSE, OnUpdatePause)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -54,9 +57,11 @@ END_MESSAGE_MAP()
 CEVT100View::CEVT100View()
 {
   m_CaretVisible = false;
-  m_BlinkChar = false;
+  m_BlinkText = false;
   m_pFont = NULL;
   m_InBlock = new BYTE[MAXBLOCK + 1];
+  m_IsErased = false;
+  m_Pause = false;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -107,6 +112,41 @@ void CEVT100View::OnInitialUpdate()
   CScrollView::OnInitialUpdate();
   SetSizes();		// Reset scrollbars
   SetTimer(IDT_BLINKTIMEOUT, 800, NULL); 
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+LRESULT CEVT100View::OnCommNotify(WPARAM wParam, LPARAM lParam)
+{
+int nLength;
+MSG msg;
+
+  CEVT100Doc *pDoc = GetDocument();
+  if(pDoc == NULL) return NULL;
+  if((COM_EVENT & LOWORD(lParam)) == COM_EVENT){
+    if(!(pDoc->m_IsConnected)){
+      SetEvent(pDoc->m_hPostEvent);
+      return NULL;
+    }
+    switch(pDoc->m_EventType){
+      case EV_ERR:
+      case EV_BREAK:
+        pDoc->FormatScreenData(IDS_COMM_OVF_FRM_ERROR);
+      case EV_RXCHAR:
+		    do{
+			    while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)) AfxGetApp()->PumpMessage();
+				  if(nLength = pDoc->ReadCommBlock()){
+					  pDoc->ProcessHostData(nLength, (LPSTR)pDoc->m_InBlock);
+	        }
+		    }
+				while (nLength > 0);
+		    SetEvent(pDoc->m_hPostEvent);	// Notify secondary thread the WM_COMMNOTIFY has been processed
+			  SetEvent(pDoc->m_hPostEvent);
+        break;
+    }
+  }
+  UpdateWindow();
+  return NULL;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -217,7 +257,7 @@ void CEVT100View::OnSize(UINT nType, int cx, int cy)
 void CEVT100View::OnTimer(UINT_PTR nIDEvent)
 {
   if(nIDEvent == IDT_BLINKTIMEOUT){
-		m_BlinkChar = !m_BlinkChar;
+		m_BlinkText = !m_BlinkText;
 		Invalidate(FALSE);
   }
   CScrollView::OnTimer(nIDEvent);
@@ -225,37 +265,10 @@ void CEVT100View::OnTimer(UINT_PTR nIDEvent)
 
 /////////////////////////////////////////////////////////////////////////////
 
-LRESULT CEVT100View::OnCommNotify(WPARAM wParam, LPARAM lParam)
+BOOL CEVT100View::OnEraseBkgnd(CDC* pDC) 
 {
-int nLength;
-MSG msg;
-
-  CEVT100Doc *pDoc = GetDocument();
-  if(pDoc == NULL) return NULL;
-  if((COM_EVENT & LOWORD(lParam)) == COM_EVENT){
-    if(!(pDoc->m_IsConnected)){
-      SetEvent(pDoc->m_hPostEvent);
-      return NULL;
-    }
-    switch(pDoc->m_EventType){
-      case EV_ERR:
-      case EV_BREAK:
-        pDoc->FormatScreenData(IDS_COMM_OVF_FRM_ERROR);
-      case EV_RXCHAR:
-		    do{
-			    while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)) AfxGetApp()->PumpMessage();
-				  if(nLength = pDoc->ReadCommBlock()){
-					  pDoc->ProcessHostData(nLength, (LPSTR)pDoc->m_InBlock);
-	        }
-		    }
-				while (nLength > 0);
-		    SetEvent(pDoc->m_hPostEvent);	// Notify secondary thread the WM_COMMNOTIFY has been processed
-			  SetEvent(pDoc->m_hPostEvent);
-        break;
-    }
-  }
-  UpdateWindow();
-  return NULL;
+  m_IsErased = true;
+  return FALSE;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -273,10 +286,15 @@ CPoint ScrollPos;
 CRect rect;
 
   ASSERT_VALID(pDoc);
+  if(m_Pause){
+    return;
+  }
+  pDC->SetBkColor(BackCol);
   rect = ((CPaintDC *)pDC)->m_ps.rcPaint;		                                      // Rectangle to be painted
+  CMemDC MemDC(pDC);
 	CBrush backBrush(RGB(0, 0, 0));
-  SetFont(pDC, pOldFont, 0);                                                      // set font
-  pDC->GetTextMetrics(&tm);
+  SetFont(MemDC, pOldFont, 0);                                                      // set font
+  MemDC->GetTextMetrics(&tm);
   m_CharWidth=tm.tmAveCharWidth;
   m_CharHeight=tm.tmHeight;
   ScrollPos = GetScrollPosition();
@@ -284,10 +302,10 @@ CRect rect;
   rect.bottom += ScrollPos.y;
   nRow = min(MAXROW - 1, max(0, rect.top / m_CharHeight));
   nEndRow = min(MAXROW - 1, (rect.bottom - 1) / m_CharHeight);
+  MemDC->SetTextColor(TextCol);                                                     // set default colours                   
+  MemDC->SetBkColor(BackCol);
+  MemDC->SetBkMode(OPAQUE);
   if(m_CaretVisible) ::HideCaret(m_hWnd);
-  pDC->SetTextColor(TextCol);                                                     // set default colours                   
-  pDC->SetBkColor(BackCol);
-  pDC->SetBkMode(OPAQUE);
   for(; nRow <= nEndRow; nRow++){
     int nLine = (nRow + pDoc->m_TopRow) % MAXROW;
     nVertPos = nRow * m_CharHeight;
@@ -300,7 +318,7 @@ CRect rect;
       int i = 0;
       pDoc->m_Screen[nLine].GetAttr(i++, &Attr, &SegStart);                       // get the first attribute
       do{
-        SetFont(pDC, pOldFont, Attr);                                             // set required font attributes
+        SetFont(MemDC, pOldFont, Attr);                                             // set required font attributes
         if(((Attr & ATTR_REVERSE) > 0)){
           TextCol = RGBFromAnsi256((Attr >> ATTR_BACK_SHIFT) & 0xFF);             // just swap foreground and background colours
           BackCol = RGBFromAnsi256((Attr >> ATTR_FORE_SHIFT) & 0xFF);
@@ -309,30 +327,30 @@ CRect rect;
           TextCol = RGBFromAnsi256((Attr >> ATTR_FORE_SHIFT) & 0xFF);
           BackCol = RGBFromAnsi256((Attr >> ATTR_BACK_SHIFT) & 0xFF);
         }
-        if(((Attr & ATTR_BLINK) > 0) && m_BlinkChar) TextCol = BackCol;           // hide the text
-        pDC->SetTextColor(TextCol);
-        pDC->SetBkColor(BackCol);
+        if(((Attr & ATTR_BLINK) > 0) && m_BlinkText) TextCol = BackCol;           // hide the text
+        MemDC->SetTextColor(TextCol);
+        MemDC->SetBkColor(BackCol);
         if(i < AttrCount) pDoc->m_Screen[nLine].GetAttr(i++, &Attr, &SegEnd);     // get the next attribute if any
         else SegEnd = StrLength;                                                  // else rest of line with current attribute
         SegLength = SegEnd - SegStart;
-        pDC->TextOut(nHorzPos, nVertPos, (LPCSTR)&pDoc->m_Screen[nLine].m_Str[SegStart], SegLength);
+        MemDC->TextOut(nHorzPos, nVertPos, (LPCSTR)&pDoc->m_Screen[nLine].m_Str[SegStart], SegLength);
         nHorzPos += SegLength * m_CharWidth;
         SegStart =  SegEnd;
       }
       while(SegEnd < StrLength);
     }
     else{                                                                         // no attribute change in line
-      pDC->TextOut(nHorzPos, nVertPos, (LPCSTR)pDoc->m_Screen[nLine].m_Str, StrLength);
+      MemDC->TextOut(nHorzPos, nVertPos, (LPCSTR)pDoc->m_Screen[nLine].m_Str, StrLength);
     }
   }
-  if(pOldFont != NULL) pDC->SelectObject(pOldFont);
+  if(pOldFont != NULL) MemDC->SelectObject(pOldFont);
   if(m_CaretVisible) ::ShowCaret(m_hWnd);
   ScrollToCursor();
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-UINT CEVT100View::ScrollToCursor(bool CheckScroll /* = false*/)
+void CEVT100View::ScrollToCursor(bool CheckScroll /* = false*/)
 {
 POINT scrollPos;
 POINT newPos;
@@ -342,6 +360,7 @@ RECT clientRect;
 
   CEVT100Doc *pDoc = GetDocument();
   ASSERT_VALID(pDoc);
+  if(m_Pause) return;
   scrollPos = GetScrollPosition();  	// Calculate cursor position on view
   newPos.x = 5 + pDoc->m_CursorPos.x * pDoc->m_CharSize.cx - scrollPos.x;
   newPos.y = ((pDoc->m_CursorPos.y + MAXROW - pDoc->m_TopRow) % MAXROW) * pDoc->m_CharSize.cy - scrollPos.y;
@@ -379,7 +398,6 @@ RECT clientRect;
     else if(DoScroll) ScrollToPosition(toPos);
     Invalidate();
   }
-  return (clientRect.right / pDoc->m_CharSize.cx);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -415,7 +433,7 @@ void CEVT100View::SetFont(LOGFONT *pLF)
 
 /////////////////////////////////////////////////////////////////////////////
 
-UINT CEVT100View::SetSizes()
+void CEVT100View::SetSizes()
 {
 SIZE sizeTotal;
 SIZE sizePage;
@@ -433,19 +451,24 @@ RECT clientRect;
   sizeLine.cx = pDoc->m_CharSize.cx;
   sizeLine.cy = pDoc->m_CharSize.cy;
   SetScrollSizes(MM_TEXT, sizeTotal, sizePage, sizeLine);
-  return (clientRect.right / pDoc->m_CharSize.cx);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-BOOL CEVT100View::OnEraseBkgnd(CDC* pDC) 
+void CEVT100View::OnPause() 
 {
-  CBrush backBrush(RGB(0,0,0));
-  CBrush* poldBrush = pDC->SelectObject(&backBrush);
-  CRect rect;
-  pDC->GetClipBox(&rect);
-  pDC->PatBlt(rect.left,rect.top,rect.Width(),rect.Height(),PATCOPY);
-  pDC->SelectObject(poldBrush);
-  return TRUE;
+  m_Pause = !m_Pause;
+  if(m_Pause) if(m_CaretVisible) ::HideCaret(m_hWnd);
+  else if(m_CaretVisible) ::ShowCaret(m_hWnd);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CEVT100View::OnUpdatePause(CCmdUI* pCmdUI) 
+{
+  pCmdUI->SetCheck(m_Pause);
+	pCmdUI->Enable(GetDocument()->m_IsConnected);
+}
+
+
 

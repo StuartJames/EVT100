@@ -146,8 +146,6 @@ BEGIN_MESSAGE_MAP(CEVT100Doc, CDocument)
 	ON_COMMAND(IDM_FILE_SETTINGS, OnEditSettings)
 	ON_COMMAND(IDM_VIEW_CLEAR, OnViewClear)
 	ON_UPDATE_COMMAND_UI(IDM_VIEW_CLEAR, OnUpdateViewClear)
-	ON_COMMAND(IDM_VIEW_PAUSE, OnPause)
-	ON_UPDATE_COMMAND_UI(IDM_VIEW_PAUSE, OnUpdatePause)
   ON_COMMAND(ID_VIEW_SETFONT, &CEVT100Doc::OnViewSetfont)
 END_MESSAGE_MAP()
 
@@ -166,7 +164,6 @@ CEVT100Doc::CEVT100Doc()
   m_StopBits = 0;
   m_XONXOFF = FALSE;
   m_IsConnected = FALSE;
-  m_Pause = false;
   m_ShowCodes = false;
   m_SerialPort="COM1";
   ZeroMemory(&m_lfFont, sizeof(m_lfFont));
@@ -186,7 +183,6 @@ CEVT100Doc::CEVT100Doc()
   m_CharSize.cx = 8;
   m_CharSize.cy = 15;
   m_Scrolled = 0;
-  m_ClientWidth = MAXCOL;
   m_InBlock = new BYTE[MAXBLOCK + 1];
   m_Escape = false;
   m_ArgCount = 0;
@@ -777,7 +773,7 @@ char *pToken = nullptr, *pNextToken = nullptr;
     }
     i++;
   }
-  m_ClientWidth = m_pTermWnd->ScrollToCursor(true);
+  m_pTermWnd->ScrollToCursor(true);
   return true;
 }
 
@@ -891,20 +887,6 @@ void CEVT100Doc::OnUpdateViewClear(CCmdUI* pCmdUI)
 }
 
 /////////////////////////////////////////////////////////////////////////////
-
-void CEVT100Doc::OnPause() 
-{
-  m_Pause = !m_Pause;
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-void CEVT100Doc::OnUpdatePause(CCmdUI* pCmdUI) 
-{
-  pCmdUI->SetCheck(m_Pause);
-	pCmdUI->Enable(m_IsConnected);
-}
-
 
 void CEVT100Doc::OnViewSetfont()
 {
