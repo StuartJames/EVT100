@@ -22,6 +22,7 @@
 
 #include "stdafx.h"
 #include "EVT100Defs.h"
+#include "SplashWnd.h"
 #include "EVT100.h"
 #include "EVT100Doc.h"
 #include "MainFrm.h"
@@ -40,6 +41,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
 	ON_WM_CREATE()
 	ON_WM_CLOSE()
 	ON_WM_TIMER()
+	ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
 	ON_COMMAND(ID_FILE_CONNECT, OnConnect)
 	ON_COMMAND(ID_FILE_DISCONNECT, OnConnect)
 	ON_UPDATE_COMMAND_UI(ID_FILE_CONNECT, OnUpdateConnect)
@@ -130,15 +132,15 @@ WNDCLASS wndcls;
 
 	BOOL bRes = CFrameWnd::PreCreateWindow(cs);
   HINSTANCE hInst = AfxGetInstanceHandle();
-  if (!::GetClassInfo(hInst, szEmaClass, &wndcls)){	// see if the class already exists
+  if (!::GetClassInfo(hInst, szEVT100Class, &wndcls)){	// see if the class already exists
     ::GetClassInfo(hInst, cs.lpszClass, &wndcls);	// get default stuff
     wndcls.style &= ~(CS_HREDRAW|CS_VREDRAW);
-    wndcls.lpszClassName = szEmaClass;              // register a new class
+    wndcls.lpszClassName = szEVT100Class;              // register a new class
     wndcls.hIcon = ::LoadIcon(hInst, MAKEINTRESOURCE(IDR_MAINFRAME));
     ASSERT(wndcls.hIcon != NULL);
     if (!AfxRegisterClass(&wndcls)) AfxThrowResourceException();
   }
-  cs.lpszClass = szEmaClass;
+  cs.lpszClass = szEVT100Class;
   return bRes;
 }
 
@@ -219,6 +221,15 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
   }
 }
 
+/////////////////////////////////////////////////////////////////////
+
+void CMainFrame::OnAppAbout()
+{
+//CAboutDlg aboutDlg;
+
+//  aboutDlg.DoModal();
+	CSplashWnd::ShowSplashScreen(0, IDB_SPLASH, this);
+}
 /////////////////////////////////////////////////////////////////////////////
 
 void CMainFrame::Initialize() 

@@ -22,6 +22,7 @@
 
 #include "stdafx.h"
 #include "EVT100Defs.h"
+#include "SplashWnd.h"
 #include "EVT100.h"
 #include "mainfrm.h"
 #include "EVT100Doc.h"
@@ -36,14 +37,20 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 #pragma comment(linker,"/manifestdependency:\"type='win32' name='microsoft.windows.Common-Controls' "\
 	"version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
+TXTREGN Regions[4] = {
+  {60,  30, 35, 20, _T("Arial Black"),{-1, -1}, RGB(0, 0, 0), DT_VCENTER | DT_SINGLELINE, true},
+  {90,  65, 35, 20, _T("Lucida"),{-1, -1}, RGB(0, 0, 0), DT_VCENTER | DT_SINGLELINE, true},
+  {160, 15, 10, 20, _T("Tahoma"),{-1, -1}, RGB(0, 0, 0), DT_VCENTER | DT_SINGLELINE, true},
+  {25,  30, 35, 20, _T("Tahoma"),{-1, -1}, RGB(0, 0, 0), DT_VCENTER | DT_SINGLELINE, true}
+};
+
 const TCHAR szHydraSystems[] = _T("HydraSystems");
-const TCHAR szEmaClass[] = _T("EmaClass");
+const TCHAR szEVT100Class[] = _T("EVT100Class");
 
 /////////////////////////////////////////////////////////////////////////////
 // CEVT100App
 
 BEGIN_MESSAGE_MAP(CEVT100App, CWinApp)
-	ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
 //	ON_COMMAND(ID_FILE_NEW, CWinApp::OnFileNew)
 //	ON_COMMAND(ID_FILE_OPEN, CWinApp::OnFileOpen)
 END_MESSAGE_MAP()
@@ -61,44 +68,36 @@ CEVT100App::CEVT100App()
 CEVT100App theApp;
 
 /////////////////////////////////////////////////////////////////////////////
-// CEVT100App initialization
 
 BOOL CEVT100App::InitInstance()
 {
-  //HWND hwnd = ::FindWindow (szEmaClass,NULL);
-  //if(hwnd){
-  //  if (IsIconic(hwnd)) ShowWindow(hwnd, SW_RESTORE);
-  //  SetForegroundWindow (hwnd);
-  //  return FALSE;
-  //}
   SetRegistryKey(szHydraSystems);
   LoadStdProfileSettings();  // Load standard INI file options (including MRU)
+  CSplashWnd::InitialiseRegions(Regions, true);
   CSingleDocTemplate* pDocTemplate;
   pDocTemplate = new CSingleDocTemplate(IDR_MAINFRAME,RUNTIME_CLASS(CEVT100Doc),RUNTIME_CLASS(CMainFrame),RUNTIME_CLASS(CEVT100View));
   AddDocTemplate(pDocTemplate);
-//  OnFileNew();
   CCommandLineInfo cmdInfo; 
 	ParseCommandLine(cmdInfo);
   if(!ProcessShellCommand(cmdInfo)) return FALSE;
   m_nCmdShow = SW_SHOWNORMAL;
+  CSplashWnd::ShowSplashScreen(SPLASH_TIME, IDB_SPLASH, m_pMainWnd);// show main frame before this statement so that correct screen is used
   m_pMainWnd->UpdateWindow();
-  m_pERecentFileList = m_pRecentFileList;
   ((CMainFrame*)m_pMainWnd)->Initialize();        // Show any previouse views
   return TRUE;
 }
 
+/////////////////////////////////////////////////////////////////////////////
 
 int CEVT100App::ExitInstance() 
 {
   return CWinApp::ExitInstance();
 }
 
-/////////////////////////////////////////////////////////////////////
+/////////////////////////////////////////////////////////////////////////////
 
-void CEVT100App::OnAppAbout()
+BOOL CEVT100App::PreTranslateMessage(MSG* pMsg)
 {
-CAboutDlg aboutDlg;
-  aboutDlg.DoModal();
+	if(CSplashWnd::PreTranslateAppMessage(pMsg)) return TRUE;
+  return CWinApp::PreTranslateMessage(pMsg);
 }
-
-

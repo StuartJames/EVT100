@@ -33,6 +33,8 @@
 #define DLT_HEX		2
 #define DLT_EXE		3
 
+#define SPLASH_TIME 5
+
 // Message screen constants
 constexpr auto MAXROW                 = 200;
 constexpr auto MAXCOL                 = 132;
@@ -76,5 +78,13 @@ constexpr auto MAX_ESC_ARGS           = 8;
 #define MSGTEXT_YELLOW		'4'
 #define MSGTEXT_CYAN		  '5'
 #define MSGTEXT_MAUVE	  	'6'
+
+typedef enum EscState_e{
+	ESC_PROC_NORMAL,
+	ESC_PROC_ESCAPE,
+	ESC_PROC_CSI,
+	ESC_LOSE_NEXT,
+	ESC_PROC_STRING
+} EscState_e;
 
 #endif

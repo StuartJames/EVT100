@@ -33,7 +33,7 @@ protected: // create from serialization only
 public:
 													CMainFrame();
 
-  CEVT100Doc*								GetDocument();
+  CEVT100Doc*							GetDocument();
 	void										Initialize();
 	virtual BOOL						PreTranslateMessage(MSG* pMsg);
   void                    SetWindowTitle(CString Title);
@@ -56,6 +56,7 @@ protected:
 	afx_msg int							OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void						OnClose();
 	afx_msg void						OnTimer(UINT_PTR nIDEvent);
+	afx_msg void						OnAppAbout();
 	afx_msg void						OnConnect();
 	afx_msg void						OnUpdateConnect(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()

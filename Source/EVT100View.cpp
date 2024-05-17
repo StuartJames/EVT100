@@ -177,6 +177,7 @@ void CEVT100View::OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags)
 CEVT100Doc *pDoc = GetDocument();
 bool IsActioned = false;
 
+  m_Pause = false;                    // any keystroke unfreezes the display
   switch(nChar){
     case VK_LEFT:
       pDoc->SendHostMessage("\x1b[D");
@@ -458,8 +459,6 @@ RECT clientRect;
 void CEVT100View::OnPause() 
 {
   m_Pause = !m_Pause;
-  if(m_Pause) if(m_CaretVisible) ::HideCaret(m_hWnd);
-  else if(m_CaretVisible) ::ShowCaret(m_hWnd);
 }
 
 /////////////////////////////////////////////////////////////////////////////

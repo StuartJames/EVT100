@@ -2,7 +2,6 @@
 // Microsoft Visual C++ generated include file.
 // Used by EVT100.rc
 //
-#define IDD_ABOUTBOX                    100
 #define IDB_ELBIEYE                     111
 #define IDB_EMA                         123
 #define IDR_MAINFRAME                   128
@@ -11,6 +10,9 @@
 #define IDR_ELBIEYE                     132
 #define IDR_CONNECTED                   135
 #define IDR_DISCONNECTED                137
+#define IDB_SPLASH                      144
+#define IDD_DIALOG1                     145
+#define IDD_ABOUTBOX                    145
 #define IDC_PORTCB                      1000
 #define IDC_BAUDCB                      1001
 #define IDC_DATABITSCB                  1002
@@ -25,7 +27,6 @@
 #define IDC_FONT                        1011
 #define IDT_BREAKTIMEOUT                1012
 #define IDT_BLINKTIMEOUT                1013
-#define IDC_COPYRIGHT_DATE              1022
 #define ID_FILE_CONNECT                 32771
 #define ID_FILE_DISCONNECT              32772
 #define IDM_SETTINGS                    32773
@@ -43,7 +44,7 @@
 #ifdef APSTUDIO_INVOKED
 #ifndef APSTUDIO_READONLY_SYMBOLS
 #define _APS_3D_CONTROLS                     1
-#define _APS_NEXT_RESOURCE_VALUE        144
+#define _APS_NEXT_RESOURCE_VALUE        147
 #define _APS_NEXT_COMMAND_VALUE         32794
 #define _APS_NEXT_CONTROL_VALUE         1023
 #define _APS_NEXT_SYMED_VALUE           102

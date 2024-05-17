@@ -39,6 +39,9 @@
     <ClCompile Include="EVTColorPalette.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
+    <ClCompile Include="SplashWnd.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="EVT100.h">
@@ -71,10 +74,13 @@
     <ClInclude Include="EVTColorPalette.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="MemoryDC.h">
+    <ClInclude Include="XTrace.h">
       <Filter>Header Files</Filter>
     </ClInclude>
-    <ClInclude Include="XTrace.h">
+    <ClInclude Include="MemDC.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="SplashWnd.h">
       <Filter>Header Files</Filter>
     </ClInclude>
   </ItemGroup>
@@ -104,6 +110,9 @@
       <Filter>Resource Files</Filter>
     </Image>
     <Image Include="Res\VT100.ico">
+      <Filter>Resource Files</Filter>
+    </Image>
+    <Image Include="Res\Splash.bmp">
       <Filter>Resource Files</Filter>
     </Image>
   </ItemGroup>

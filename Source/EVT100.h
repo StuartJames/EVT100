@@ -26,7 +26,7 @@
 	#error include 'stdafx.h' before including this file for PCH
 #endif
 
-extern const TCHAR szEmaClass[];
+extern const TCHAR szEVT100Class[];
 
 #include "resource.h"       // main symbols
 
@@ -35,15 +35,11 @@ extern const TCHAR szEmaClass[];
 class CEVT100App : public CWinApp
 {
 public:
-	CEVT100App();
+									CEVT100App();
 
-	CRecentFileList *m_pERecentFileList;
-
-public:
-	virtual BOOL InitInstance();
-	virtual int ExitInstance();
-
-	afx_msg void OnAppAbout();
+	virtual BOOL		InitInstance();
+	virtual int			ExitInstance();
+	virtual BOOL		PreTranslateMessage(MSG* pMsg);
 
 	DECLARE_MESSAGE_MAP()
 };

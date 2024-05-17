@@ -163,7 +163,7 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>oldnames.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>oldnames.lib;version.lib%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <ProgramDatabaseFile>$(OutDir)$(TargetName).pdb</ProgramDatabaseFile>
@@ -241,7 +241,7 @@
       <Culture>0x0809</Culture>
     </ResourceCompile>
     <Link>
-      <AdditionalDependencies>oldnames.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <AdditionalDependencies>oldnames.lib;version.lib%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
       <GenerateDebugInformation>true</GenerateDebugInformation>
@@ -305,6 +305,7 @@
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</BrowseInformation>
       <BrowseInformation Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</BrowseInformation>
     </ClCompile>
+    <ClCompile Include="SplashWnd.cpp" />
     <ClCompile Include="StdAfx.cpp">
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Disabled</Optimization>
       <Optimization Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Disabled</Optimization>
@@ -330,8 +331,9 @@
     <ClInclude Include="EVTLineObj.h" />
     <ClInclude Include="EVT100View.h" />
     <ClInclude Include="MainFrm.h" />
-    <ClInclude Include="MemoryDC.h" />
+    <ClInclude Include="MemDC.h" />
     <ClInclude Include="resource.h" />
+    <ClInclude Include="SplashWnd.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="XTrace.h" />
   </ItemGroup>
@@ -342,6 +344,7 @@
     <Image Include="RES\EMA.BMP" />
     <Image Include="res\ema.ico" />
     <Image Include="res\emadoc.ico" />
+    <Image Include="Res\Splash.bmp" />
     <Image Include="res\toolbar.bmp" />
     <Image Include="Res\toolbar1.bmp" />
     <Image Include="Res\VT100.ico" />

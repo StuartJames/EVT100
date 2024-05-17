@@ -24,7 +24,9 @@
 
 #include "EVTLineObj.h"
 
-// Secondary thread function
+const char CoSeDe[] = ";";				// Control Sequence Delimeter
+
+ // Secondary thread function
 UINT CommWatchProc(LPVOID lpParam);
 
 class CEVT100View;
@@ -47,17 +49,18 @@ protected:
 	BOOL					m_XONXOFF;
   DWORD					m_EventType;
   BYTE*					m_InBlock;
-	bool					m_Escape;
 	int						m_CurrentAttr;
 	char					m_EscapeArgs[MAX_ESC_ARGS + 1];
 	int						m_ArgCount;
 	bool					m_ShowCodes;
+	int						m_EscState;
 
 protected: 
 	void					GetSystemVars();
 	void					SaveSystemVars();
   void					IncLineIndex(int Inc);
   void					DecLineIndex(int Dec);
+	void					ProcessCtrlSequ(LPSTR lpMessage, int *i);
 
 public:
 	bool					m_IsConnected;
