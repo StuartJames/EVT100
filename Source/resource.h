@@ -11,7 +11,6 @@
 #define IDR_CONNECTED                   135
 #define IDR_DISCONNECTED                137
 #define IDB_SPLASH                      144
-#define IDD_DIALOG1                     145
 #define IDD_ABOUTBOX                    145
 #define IDC_PORTCB                      1000
 #define IDC_BAUDCB                      1001
@@ -22,9 +21,11 @@
 #define IDC_RTSCTS                      1006
 #define IDC_XONXOFF                     1007
 #define IDC_AUTOWRAP                    1008
+#define IDC_LINEWRAP                    1008
 #define IDC_NEWLINE                     1009
 #define IDC_LOCALECHO                   1010
 #define IDC_FONT                        1011
+#define IDC_VIEWWRAP                    1011
 #define IDT_BREAKTIMEOUT                1012
 #define IDT_BLINKTIMEOUT                1013
 #define ID_FILE_CONNECT                 32771

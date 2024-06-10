@@ -40,13 +40,14 @@ protected:
 	long					m_Baud;
 	int						m_DataBits;
 	BOOL					m_DTRDSR;
-	BOOL					m_LocalEcho;
-	BOOL					m_LineWrap;
-	BOOL					m_NewLine;
 	int						m_Parity;
 	BOOL					m_RTSCTS;
 	int						m_StopBits;
 	BOOL					m_XONXOFF;
+	BOOL					m_LocalEcho;
+	BOOL					m_NewLine;
+	Wrap_t				m_UserWrap;
+	Wrap_t				m_SoftWrap;
   DWORD					m_EventType;
   BYTE*					m_InBlock;
 	int						m_CurrentAttr;
@@ -69,8 +70,7 @@ public:
 	HANDLE				m_hPostEvent;	// To sync WM_COMMNOTIFY processing
 	CWinThread		*m_pThread;
 	OVERLAPPED		m_osWrite, m_osRead;
-	LOGFONT				m_lfFont;
-	CSize					m_CharSize;
+	LOGFONT				m_LogFont;
 	CLineObj			m_Screen[MAXROW];
 	char					*m_pLineBuf;
 	CPoint				m_CursorPos;
@@ -89,7 +89,6 @@ public:
   bool					FormatScreenData(UINT uID);
   bool					FormatScreenData(const char* lpStrFmt, ...);
   bool					ProcessHostData(int nLength, LPSTR lpBlock);
-	void					SetFontSize();
 
 	public:
 	virtual BOOL	OnNewDocument();

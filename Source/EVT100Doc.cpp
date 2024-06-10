@@ -47,7 +47,7 @@ BOOL _bAbort;
 static char BASED_CODE szSettings[] = "Settings";
 static char BASED_CODE szVariables[] = "Variables";
 static char BASED_CODE szFont[] = "Font";
-static char BASED_CODE szFormat[] = "%d %d %d %d %d %d %d %d %d %d %5s";
+static char BASED_CODE szFormat[] = "%d %d %d %d %d %d %d %d %d %d %d %5s";
 static char BASED_CODE szRFFormat[] = "%ld %ld %d %d %d %[ -z]";
 static char BASED_CODE szWFFormat[] = "%ld %ld %d %d %d %s";
 static char BASED_CODE szSystem[] = "System";
@@ -153,7 +153,10 @@ END_MESSAGE_MAP()
 
 CEVT100Doc::CEVT100Doc()
 {
-  m_LineWrap = TRUE;
+  m_UserWrap.Line = true;
+  m_UserWrap.View = true;
+  m_SoftWrap.Line = true;
+  m_SoftWrap.View = true;
   m_Baud = 9600;
   m_DataBits = 8;
   m_DTRDSR = FALSE;
@@ -166,12 +169,12 @@ CEVT100Doc::CEVT100Doc()
   m_IsConnected = FALSE;
   m_ShowCodes = false;
   m_SerialPort="COM1";
-  ZeroMemory(&m_lfFont, sizeof(m_lfFont));
-  m_lfFont.lfHeight = -13;
-  m_lfFont.lfWeight = FW_DONTCARE;
-  m_lfFont.lfItalic = 255;
-  m_lfFont.lfPitchAndFamily = FIXED_PITCH | FF_MODERN;
-  strcpy_s(m_lfFont.lfFaceName, sizeof(m_lfFont.lfFaceName), "Consolas");
+  ZeroMemory(&m_LogFont, sizeof(m_LogFont));
+  m_LogFont.lfHeight = -13;
+  m_LogFont.lfWeight = FW_DONTCARE;
+  m_LogFont.lfItalic = 255;
+  m_LogFont.lfPitchAndFamily = FIXED_PITCH | FF_MODERN;
+  strcpy_s(m_LogFont.lfFaceName, sizeof(m_LogFont.lfFaceName), "Consolas");
   ZeroMemory(&m_osRead, sizeof(OVERLAPPED));
   ZeroMemory(&m_osWrite, sizeof(OVERLAPPED));
   m_hPostEvent = NULL;
@@ -180,15 +183,13 @@ CEVT100Doc::CEVT100Doc()
   m_CursorPos.SetPoint(0, 0);
   m_CursorSave.SetPoint(0, 0);
   m_TopRow = 0;
-  m_CharSize.cx = 8;
-  m_CharSize.cy = 15;
   m_Scrolled = 0;
-  m_InBlock = new BYTE[MAXBLOCK + 1];
+  m_InBlock = new BYTE[INBLOCKSIZE + 1];
   m_ArgCount = 0;
   m_EscState = ESC_PROC_NORMAL;
   m_CurrentAttr = ATTR_DEFAULT;
   m_pLineBuf = m_Screen[m_CursorPos.y].m_Str;
-  GetProfileFont(&m_lfFont);
+  GetProfileFont(&m_LogFont);
   GetSystemVars();
 }
 
@@ -206,7 +207,7 @@ CEVT100Doc::~CEVT100Doc()
   	CloseHandle(m_osWrite.hEvent);
   	m_osWrite.hEvent = NULL;
   }
-  if (m_hPostEvent){
+  if(m_hPostEvent){
   	CloseHandle(m_hPostEvent);
   	m_hPostEvent = NULL;
   }
@@ -217,18 +218,20 @@ CEVT100Doc::~CEVT100Doc()
 
 void CEVT100Doc::GetSystemVars()
 {
-char temp[10];
+  char temp[10] = {0};
 
   CString strBuffer = AfxGetApp()->GetProfileString(szSettings, szVariables);
   if (strBuffer.IsEmpty()) return;
   int nRead = sscanf_s(strBuffer, szFormat,
     &m_XONXOFF, &m_LocalEcho,
-    &m_NewLine, &m_LineWrap,
-    &m_RTSCTS, &m_DataBits,
-    &m_DTRDSR, &m_Parity,
-    &m_StopBits, &m_Baud,
-    &temp, 10);
+    &m_NewLine, &m_UserWrap.Line,
+    &m_UserWrap.View, &m_RTSCTS,
+    &m_DataBits, &m_DTRDSR, 
+    &m_Parity, &m_StopBits,
+    &m_Baud, &temp, 10);
   if(strlen(temp) > 3 ) m_SerialPort = temp;
+  m_SoftWrap.Line = m_UserWrap.Line;
+  m_SoftWrap.View = m_UserWrap.View;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -239,13 +242,13 @@ char szBuffer[100];
 
   sprintf_s(szBuffer, sizeof(szBuffer), szFormat,
     m_XONXOFF, m_LocalEcho,
-    m_NewLine, m_LineWrap,
-    m_RTSCTS, m_DataBits,
-    m_DTRDSR, m_Parity,
-    m_StopBits, m_Baud,
-    (const char *)m_SerialPort);
+    m_NewLine, m_UserWrap.Line,
+    m_UserWrap.View, m_RTSCTS,
+    m_DataBits, m_DTRDSR,
+    m_Parity, m_StopBits,
+    m_Baud, (const char *)m_SerialPort);
   AfxGetApp()->WriteProfileString(szSettings, szVariables, szBuffer);
-  WriteProfileFont(&m_lfFont);
+  WriteProfileFont(&m_LogFont);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -266,16 +269,15 @@ void CEVT100Doc::OnCloseDocument()
   if(m_IsConnected) CloseConnection();
 	CDocument::OnCloseDocument();
 }
+
 /////////////////////////////////////////////////////////////////////////////
 // CEVT100Doc serialization
 
 void CEVT100Doc::Serialize(CArchive& ar)
 {
   if (ar.IsStoring()){
-		// TODO: add storing code here
   }
   else{
-		// TODO: add loading code here
   }
 }
 
@@ -292,7 +294,7 @@ void CEVT100Doc::Dump(CDumpContext& dc) const
 {
 	CDocument::Dump(dc);
 }
-#endif //_DEBUG
+#endif 
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -306,10 +308,9 @@ CString cstr;
 
   if(m_IsConnected) return false;
   CWaitCursor Wait;   // do wait cursor 
-  SetFontSize();
   firstViewPos = GetFirstViewPosition();
   pView = (CEVT100View *)GetNextView(firstViewPos);
-  pView->SetFont(&m_lfFont);
+  pView->SetFont(&m_LogFont);
 	cstr.Format(_T("\\\\.\\%s"), m_SerialPort);
 	if((m_idComDev = CreateFile(cstr, GENERIC_READ | GENERIC_WRITE, 0, NULL, OPEN_EXISTING, FILE_ATTRIBUTE_NORMAL | FILE_FLAG_OVERLAPPED, NULL)) == INVALID_HANDLE_VALUE){
 		DWORD Error = GetLastError();
@@ -345,6 +346,8 @@ CString cstr;
     m_CurrentAttr = ATTR_DEFAULT;
     pView->SendMessage(WM_SETFOCUS);
     ((CMainFrame*)AfxGetMainWnd())->SetWindowTitle(m_SerialPort);
+    m_SoftWrap.Line = m_UserWrap.Line;                            // reset wrap to user settings
+    m_SoftWrap.View = m_UserWrap.View;
   }
   return m_IsConnected;
 }
@@ -456,7 +459,7 @@ DWORD dwFlags, dwLength;
 
   if (!m_IsConnected) return 0;
   ClearCommError(m_idComDev, &dwFlags, &ComStat);
-  dwLength = min((DWORD)MAXBLOCK, ComStat.cbInQue);
+  dwLength = min((DWORD)INBLOCKSIZE, ComStat.cbInQue);
   if(dwLength > 0){
 		if(!ReadFile(m_idComDev, m_InBlock, dwLength,	&dwLength, &m_osRead)){
 	    if(GetLastError() != ERROR_IO_PENDING) Error = true;
@@ -562,7 +565,7 @@ char *pToken = nullptr, *pNextToken = nullptr;
        	  m_pLineBuf[m_CursorPos.x++] = (lpMessage[i] & 0x7f);
        	  m_pLineBuf[m_CursorPos.x] = 0;
       	  if(m_CursorPos.x >= MAXCOL){
-            if(m_LineWrap) FormatScreenData("\n");          // start a new line
+            if(m_SoftWrap.Line) FormatScreenData("\n");          // start a new line
             else --m_CursorPos.x;                           // overwrite last character
           }
 //			 	  m_pTermWnd->Invalidate(FALSE);
@@ -685,7 +688,7 @@ int j;
     }
     case 	'h':{       
       pToken = strtok_s(m_EscapeArgs, CoSeDe, &pNextToken);
-      if(*pToken == '7') m_LineWrap = TRUE;      // Enable line wrap
+      if(*pToken == '7') m_SoftWrap.Line = true;      // Enable line wrap
       m_EscState = ESC_PROC_NORMAL;
       break;
     }
@@ -717,7 +720,7 @@ int j;
     }
     case 	'l':{       
       pToken = strtok_s(m_EscapeArgs, CoSeDe, &pNextToken); 
-      if(*pToken == '7') m_LineWrap = FALSE;      // Enable line wrap
+      if(*pToken == '7') m_SoftWrap.Line = false;      // Enable line wrap
       m_EscState = ESC_PROC_NORMAL;
       break;
     }
@@ -853,62 +856,47 @@ void CEVT100Doc::OnEditSettings()
 char buf[34];
 CEVTSettingsDlg SettingsDlg;
 
-  SettingsDlg.m_LineWrap = m_LineWrap;
   _itoa_s(m_Baud, buf, 34, 10);
   SettingsDlg.m_Baud = buf;
   _itoa_s(m_DataBits, buf, 34, 10);
   SettingsDlg.m_DataBits = buf;
   SettingsDlg.m_DTRDSR = m_DTRDSR;
-  SettingsDlg.m_LocalEcho = m_LocalEcho;
-  SettingsDlg.m_NewLine = m_NewLine;
   SettingsDlg.m_Parity = m_Parity;
   SettingsDlg.m_SerialPort = m_SerialPort;
   SettingsDlg.m_RTSCTS = m_RTSCTS;
   SettingsDlg.m_StopBits = m_StopBits;
   SettingsDlg.m_XONXOFF = m_XONXOFF;
-  SettingsDlg.m_lfFont = m_lfFont;
+  SettingsDlg.m_LineWrap = m_UserWrap.Line;
+  SettingsDlg.m_ViewWrap = m_UserWrap.View;
+  SettingsDlg.m_LocalEcho = m_LocalEcho;
+  SettingsDlg.m_NewLine = m_NewLine;
+  SettingsDlg.m_LogFont = m_LogFont;
   SettingsDlg.m_IsConnected = m_IsConnected;
-  if (SettingsDlg.DoModal() == IDOK){
-    m_LineWrap = SettingsDlg.m_LineWrap;
+  if(SettingsDlg.DoModal() == IDOK){
     m_Baud = atoi(SettingsDlg.m_Baud);
     m_DataBits = atoi(SettingsDlg.m_DataBits);
     m_DTRDSR = SettingsDlg.m_DTRDSR;
-    m_LocalEcho = SettingsDlg.m_LocalEcho;
-    m_NewLine = SettingsDlg.m_NewLine;
     m_Parity = SettingsDlg.m_Parity;
-    if (!m_IsConnected) m_SerialPort = SettingsDlg.m_SerialPort;
+    if(!m_IsConnected) m_SerialPort = SettingsDlg.m_SerialPort;
     m_RTSCTS = SettingsDlg.m_RTSCTS;
     m_StopBits = SettingsDlg.m_StopBits;
     m_XONXOFF = SettingsDlg.m_XONXOFF;
-     m_lfFont = SettingsDlg.m_lfFont;
-    SetFontSize();
+    m_UserWrap.Line = SettingsDlg.m_LineWrap > 0;
+    m_SoftWrap.Line = m_UserWrap.Line;
+    m_UserWrap.View = SettingsDlg.m_ViewWrap> 0;
+    m_SoftWrap.View = m_UserWrap.View;
+    m_LocalEcho = SettingsDlg.m_LocalEcho;
+    m_NewLine = SettingsDlg.m_NewLine;
+    m_LogFont = SettingsDlg.m_LogFont;
     POSITION firstViewPos = GetFirstViewPosition();
     CEVT100View *pView = (CEVT100View *)GetNextView(firstViewPos);
-    pView->SetFont(&m_lfFont);
-    if (m_IsConnected){
-      if (!SetupConnection()){
+    pView->SetFont(&m_LogFont);
+    if(m_IsConnected){
+      if(!SetupConnection()){
       	AfxMessageBox(IDS_BADSETUP);
       }
     }
   }
-}
-
-/////////////////////////////////////////////////////////////////////////////
-
-void CEVT100Doc::SetFontSize()
-{
-CDC *pDC;
-TEXTMETRIC tm;
-CFont *pOldFont;
-CFont font;
-
-  font.CreateFontIndirect(&m_lfFont);
-  pDC = AfxGetMainWnd()->GetDC();
-  pOldFont = pDC->SelectObject(&font);
-  pDC->GetTextMetrics(&tm);
-  m_CharSize.cx = tm.tmAveCharWidth;
-  m_CharSize.cy = tm.tmHeight + tm.tmExternalLeading;
-  if (pOldFont) pDC->SelectObject(pOldFont);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -938,9 +926,9 @@ void CEVT100Doc::OnViewSetfont()
 {
 LOGFONT newlf;
 
-	newlf = m_lfFont;
+	newlf = m_LogFont;
 	CFontDialog fontDialog(&newlf, CF_SCREENFONTS | CF_INITTOLOGFONTSTRUCT | CF_FIXEDPITCHONLY);
 	if(fontDialog.DoModal() == IDOK){
-		m_lfFont = newlf;
+		m_LogFont = newlf;
 	}
 }

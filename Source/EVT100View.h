@@ -22,12 +22,9 @@
 
 #pragma once
 
-// The WM_COMMNOTIFY message was borrowed from Windows 3.1
-
-#define WM_COMMNOTIFY 0x0044
-#define COM_EVENT 0x04
-
-constexpr auto MAXBLOCK					= 1024;
+//constexpr auto WM_COMMNOTIFY		= 0x0444;			
+constexpr auto COM_EVENT				= 0x04;
+constexpr auto INBLOCKSIZE			= 1024;
 constexpr auto SCRN_MARGIN_X		= 5;
 constexpr auto SCRN_MARGIN_Y		= 5;
 
@@ -40,13 +37,13 @@ protected: // create from serialization only
 protected:
 	bool		m_CaretVisible;	// Set when text cursor is displayed
 	CFont*	m_pFont;
-  int     m_CharWidth;
-  int     m_CharHeight;
+	CSize		m_CharSize;
   BYTE*   m_InBlock;
 	POINT		m_CaretPos;
 	bool		m_BlinkText;
-	bool		m_IsErased;
 	bool		m_Pause;
+	int			m_WrapRows;
+	int			m_MaxCol;
 
 public:
 	CEVT100Doc* GetDocument();
@@ -56,6 +53,7 @@ public:
 	void SetFont(CDC* pDC, CFont *pOldFont, UINT Attr);
 	void SetFont(LOGFONT *lf);
 	void SetSizes();
+	int  ExTextOut(CDC* pDC, int *pHorz, int *pVert, int Width, LPCSTR Str, int Length, bool ViewWrap);
 
 	public:
 	virtual void OnDraw(CDC* pDC);  // overridden to draw this view

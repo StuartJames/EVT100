@@ -70,6 +70,7 @@ public:
 
 	enum { IDD = IDD_SETTINGS };
 	BOOL			m_LineWrap;
+	BOOL			m_ViewWrap;
 	CString		m_Baud;
 	CString		m_DataBits;
 	BOOL			m_DTRDSR;
@@ -80,7 +81,7 @@ public:
   int				m_StopBits;
 	BOOL			m_XONXOFF;
 	CString		m_SerialPort;
-	LOGFONT		m_lfFont;
+	LOGFONT		m_LogFont;
 	BOOL			m_IsConnected;
 
 protected:

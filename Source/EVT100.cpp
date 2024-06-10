@@ -38,7 +38,7 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 	"version='6.0.0.0' processorArchitecture='*' publicKeyToken='6595b64144ccf1df' language='*'\"")
 
 TXTREGN Regions[4] = {
-  {60,  30, 35, 20, _T("Arial Black"),{-1, -1}, RGB(0, 0, 0), DT_VCENTER | DT_SINGLELINE, true},
+  {60,  30, 35, 20, _T("Arial Black"),{-1, -1}, RGB(40, 140, 20), DT_VCENTER | DT_SINGLELINE, true},
   {90,  65, 35, 20, _T("Lucida"),{-1, -1}, RGB(0, 0, 0), DT_VCENTER | DT_SINGLELINE, true},
   {160, 15, 10, 20, _T("Tahoma"),{-1, -1}, RGB(0, 0, 0), DT_VCENTER | DT_SINGLELINE, true},
   {25,  30, 35, 20, _T("Tahoma"),{-1, -1}, RGB(0, 0, 0), DT_VCENTER | DT_SINGLELINE, true}

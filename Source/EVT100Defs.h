@@ -37,7 +37,7 @@
 
 // Message screen constants
 constexpr auto MAXROW                 = 200;
-constexpr auto MAXCOL                 = 132;
+constexpr auto MAXCOL                 = 255;
 constexpr auto TABSTOP                = 8;
 constexpr auto MAXMRU                 = 8;
 
@@ -86,5 +86,11 @@ typedef enum EscState_e{
 	ESC_LOSE_NEXT,
 	ESC_PROC_STRING
 } EscState_e;
+
+typedef struct Wrap_t{
+	bool Line;
+  bool View;
+} Wrap_t;
+
 
 #endif

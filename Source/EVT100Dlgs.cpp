@@ -113,6 +113,7 @@ CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialog(CEVTSettingsDlg::IDD, pParent)
 {
 	m_LineWrap = FALSE;
+	m_ViewWrap = FALSE;
 	m_Baud = _T("");
 	m_DataBits = _T("");
 	m_DTRDSR = FALSE;
@@ -123,11 +124,11 @@ CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 	m_StopBits = -1;
 	m_XONXOFF = FALSE;
 	m_SerialPort = _T("");
-	memset(&m_lfFont, 0, sizeof(m_lfFont));
-	m_lfFont.lfHeight = -9;
-	m_lfFont.lfWeight = FW_DONTCARE;
-	m_lfFont.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
-	strcpy_s(m_lfFont.lfFaceName, sizeof(m_lfFont.lfFaceName), "FixedSys");
+	memset(&m_LogFont, 0, sizeof(m_LogFont));
+	m_LogFont.lfHeight = -9;
+	m_LogFont.lfWeight = FW_DONTCARE;
+	m_LogFont.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
+	strcpy_s(m_LogFont.lfFaceName, sizeof(m_LogFont.lfFaceName), "FixedSys");
 	m_IsConnected = FALSE;
 }
 
@@ -136,7 +137,8 @@ CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialog::DoDataExchange(pDX);
-	DDX_Check(pDX, IDC_AUTOWRAP, m_LineWrap);
+	DDX_Check(pDX, IDC_LINEWRAP, m_LineWrap);
+	DDX_Check(pDX, IDC_VIEWWRAP, m_ViewWrap);
 	DDX_CBString(pDX, IDC_BAUDCB, m_Baud);
 	DDX_CBString(pDX, IDC_DATABITSCB, m_DataBits);
 	DDX_Check(pDX, IDC_DTRDSR, m_DTRDSR);
