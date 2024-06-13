@@ -289,56 +289,58 @@ CRect rect;
 
   if(m_Pause) return;
   ASSERT_VALID(pDoc);
-  pDC->SetBkColor(BackCol);
-  rect = ((CPaintDC *)pDC)->m_ps.rcPaint;		                                      // Rectangle to be painted
+  pDC->SetBkColor(BackCol);                                                       // required so that MemDC sets a blank canvas
   CMemDC MemDC(pDC);
 	CBrush backBrush(RGB(0, 0, 0));
   SetFont(MemDC, pOldFont, 0);                                                    // set font
+  GetClientRect(&rect);
   ScrollPos = GetScrollPosition();
   rect.top += ScrollPos.y;
   rect.bottom += ScrollPos.y;
   EndRow = min(MAXROW - 1, (rect.bottom - 1) / m_CharSize.cy);
+  UINT ViewWidth = (rect.right - rect.left) / m_CharSize.cx;                      // how many visible characters on a line
+  m_WrapRows = 0;
+  m_MaxCol = 0;
   MemDC->SetTextColor(TextCol);                                                   // set default colours                   
   MemDC->SetBkColor(BackCol);
   MemDC->SetBkMode(OPAQUE);
-  m_WrapRows = 0;
-  m_MaxCol = 0;
-  UINT ViewWidth = (rect.right - rect.left) / m_CharSize.cx;                      // how many visible characters on a line
   if(m_CaretVisible) ::HideCaret(m_hWnd);
-  for(; Row <= EndRow; Row++){
-    int Line = (Row + pDoc->m_TopRow) % MAXROW;
-    HorzPos = SCRN_MARGIN_X;
-    UINT StrLength = (int)strlen(pDoc->m_Screen[Line].m_Str);
-    int AttrCount = pDoc->m_Screen[Line].GetCount();
-    if(AttrCount){                                                                // line contains attribute changes
-      int i = 0;
-      pDoc->m_Screen[Line].GetAttr(i++, &Attr, &SegStart);                        // get the first attribute
-      do{
-        SetFont(MemDC, pOldFont, Attr);                                           // set required font attributes
-        if(((Attr & ATTR_REVERSE) > 0)){
-          TextCol = RGBFromAnsi256((Attr >> ATTR_BACK_SHIFT) & 0xFF);             // just swap foreground and background colours
-          BackCol = RGBFromAnsi256((Attr >> ATTR_FORE_SHIFT) & 0xFF);
+  if(ViewWidth){
+    for(; Row <= EndRow; Row++){
+      int Line = (Row + pDoc->m_TopRow) % MAXROW;
+      HorzPos = SCRN_MARGIN_X;
+      UINT StrLength = (int)strlen(pDoc->m_Screen[Line].m_Str);
+      int AttrCount = pDoc->m_Screen[Line].GetCount();
+      if(AttrCount){                                                                // line contains attribute changes
+        int i = 0;
+        pDoc->m_Screen[Line].GetAttr(i++, &Attr, &SegStart);                        // get the first attribute
+        do{
+          SetFont(MemDC, pOldFont, Attr);                                           // set required font attributes
+          if(((Attr & ATTR_REVERSE) > 0)){
+            TextCol = RGBFromAnsi256((Attr >> ATTR_BACK_SHIFT) & 0xFF);             // just swap foreground and background colours
+            BackCol = RGBFromAnsi256((Attr >> ATTR_FORE_SHIFT) & 0xFF);
+          }
+          else{
+            TextCol = RGBFromAnsi256((Attr >> ATTR_FORE_SHIFT) & 0xFF);
+            BackCol = RGBFromAnsi256((Attr >> ATTR_BACK_SHIFT) & 0xFF);
+          }
+          if(((Attr & ATTR_BLINK) > 0) && m_BlinkText) TextCol = BackCol;           // hide the text
+          MemDC->SetTextColor(TextCol);
+          MemDC->SetBkColor(BackCol);
+          if(i < AttrCount) pDoc->m_Screen[Line].GetAttr(i++, &Attr, &SegEnd);      // get the next attribute if any
+          else SegEnd = StrLength;                                                  // else output rest of line with current attribute
+          SegLength = SegEnd - SegStart;                                            // get the number of characters in this segment
+          m_WrapRows += ExTextOut(MemDC, &HorzPos, &VertPos, ViewWidth, (LPCSTR)&pDoc->m_Screen[Line].m_Str[SegStart], SegLength, pDoc->m_SoftWrap.View);
+          SegStart =  SegEnd;                                                       // set new segment start position
         }
-        else{
-          TextCol = RGBFromAnsi256((Attr >> ATTR_FORE_SHIFT) & 0xFF);
-          BackCol = RGBFromAnsi256((Attr >> ATTR_BACK_SHIFT) & 0xFF);
-        }
-        if(((Attr & ATTR_BLINK) > 0) && m_BlinkText) TextCol = BackCol;           // hide the text
-        MemDC->SetTextColor(TextCol);
-        MemDC->SetBkColor(BackCol);
-        if(i < AttrCount) pDoc->m_Screen[Line].GetAttr(i++, &Attr, &SegEnd);      // get the next attribute if any
-        else SegEnd = StrLength;                                                  // else output rest of line with current attribute
-        SegLength = SegEnd - SegStart;
-        m_WrapRows += ExTextOut(MemDC, &HorzPos, &VertPos, ViewWidth, (LPCSTR)&pDoc->m_Screen[Line].m_Str[SegStart], SegLength, pDoc->m_SoftWrap.View);
-        SegStart =  SegEnd;
+        while(SegEnd < StrLength);                                                  // repeat for all segments 
       }
-      while(SegEnd < StrLength);
+      else{                                                                         // no attribute change in line
+        m_WrapRows += ExTextOut(MemDC, &HorzPos, &VertPos, ViewWidth, (LPCSTR)&pDoc->m_Screen[Line].m_Str, StrLength, pDoc->m_SoftWrap.View);
+      }
+      VertPos += m_CharSize.cy;
+      if(HorzPos > m_MaxCol) m_MaxCol = HorzPos;                                    // used to set horizontal scroll size
     }
-    else{                                                                         // no attribute change in line
-      m_WrapRows += ExTextOut(MemDC, &HorzPos, &VertPos, ViewWidth, (LPCSTR)&pDoc->m_Screen[Line].m_Str, StrLength, pDoc->m_SoftWrap.View);
-    }
-    VertPos += m_CharSize.cy;
-    if(HorzPos > m_MaxCol) m_MaxCol = HorzPos;
   }
   if(pOldFont != NULL) MemDC->SelectObject(pOldFont);
   if(m_CaretVisible) ::ShowCaret(m_hWnd);
