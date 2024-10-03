@@ -62,6 +62,7 @@ protected:
   void					IncLineIndex(int Inc);
   void					DecLineIndex(int Dec);
 	void					ProcessCtrlSequ(LPSTR lpMessage, int *i);
+	void					ScreenErase(int Mode = 0);
 
 public:
 	bool					m_IsConnected;
@@ -102,13 +103,14 @@ public:
 	virtual void	Dump(CDumpContext& dc) const;
 #endif
 
+public:
+	afx_msg void OnViewSetfont();
+
 protected:
 	afx_msg void	OnEditSettings();
 	afx_msg void	OnViewClear();
 	afx_msg void	OnUpdateViewClear(CCmdUI* pCmdUI);
 	DECLARE_MESSAGE_MAP()
-public:
-	afx_msg void OnViewSetfont();
 };
 
 /////////////////////////////////////////////////////////////////////////////

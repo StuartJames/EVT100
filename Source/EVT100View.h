@@ -49,11 +49,12 @@ public:
 	CEVT100Doc* GetDocument();
 
 public:
-	void ScrollToCursor(bool CheckScroll = false);
-	void SetFont(CDC* pDC, CFont *pOldFont, UINT Attr);
-	void SetFont(LOGFONT *lf);
-	void SetSizes();
-	int  ExTextOut(CDC* pDC, int *pHorz, int *pVert, int Width, LPCSTR Str, int Length, bool ViewWrap);
+	int						GetRowCount(void);
+	void					ScrollToCursor(bool CheckScroll = false);
+	void					SetFont(CDC* pDC, CFont *pOldFont, UINT Attr);
+	void					SetFont(LOGFONT *lf);
+	void					SetSizes();
+	int						ExTextOut(CDC* pDC, int *pHorz, int *pVert, int Width, LPCSTR Str, int Length, bool ViewWrap);
 
 	public:
 	virtual void OnDraw(CDC* pDC);  // overridden to draw this view

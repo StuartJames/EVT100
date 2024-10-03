@@ -323,8 +323,8 @@ END
 //
 
 VS_VERSION_INFO VERSIONINFO
- FILEVERSION 2,1,2,195
- PRODUCTVERSION 2,1,2,195
+ FILEVERSION 2,1,3,277
+ PRODUCTVERSION 2,1,3,277
  FILEFLAGSMASK 0x3fL
 #ifdef _DEBUG
  FILEFLAGS 0x1L
@@ -342,12 +342,12 @@ BEGIN
             VALUE "Comments", "Written by: S. James."
             VALUE "CompanyName", "HydraSystems"
             VALUE "FileDescription", "VT100 Emulator"
-            VALUE "FileVersion", "2.1.2.195"
+            VALUE "FileVersion", "2.1.3.277"
             VALUE "InternalName", "Evt100.exe"
             VALUE "LegalCopyright", "Copyright © 2012-2024 HydraSystems. All Rights Reserved."
             VALUE "OriginalFilename", "Evt100.exe"
             VALUE "ProductName", "EVT100"
-            VALUE "ProductVersion", "2.1.2.195"
+            VALUE "ProductVersion", "2.1.3.277"
         END
     END
     BLOCK "VarFileInfo"

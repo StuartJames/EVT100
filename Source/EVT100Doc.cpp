@@ -590,6 +590,41 @@ void CEVT100Doc::OnViewClear()
 
 /////////////////////////////////////////////////////////////////////////////
 
+void CEVT100Doc::ScreenErase(int Mode/*=0*/) 
+{
+int Row, RowCount = m_pTermWnd->GetRowCount();                                // get number of visible rows 
+
+  switch(Mode){
+    case EM_ALL:{
+	    for(int i = 0; i < RowCount; i++){                                      // clear all visible
+        Row = (i + m_TopRow) % MAXROW;
+        m_Screen[Row].Clear();
+      }
+      break;
+    }
+    case EM_TO_CURSOR:{
+	    for(int i = 0; i < RowCount; i++){
+        Row = (i + m_TopRow) % MAXROW;
+        if(Row == m_CursorPos.y) break;                                       // stop when we hit the cursor line
+        m_Screen[Row].Clear();
+      }
+      FillMemory(&m_pLineBuf[0], m_CursorPos.x, ' ');                         // clear from begining of line to cursor position 
+      break;
+    }
+    case EM_FROM_CURSOR:{
+      FillMemory(&m_pLineBuf[m_CursorPos.x], MAXCOL - m_CursorPos.x, ' ');    // clear from cursor position to line end
+	    for(int i = 0; i < RowCount; i++){                                      
+        Row = (i + m_TopRow) % MAXROW;
+        if(Row > m_CursorPos.y) m_Screen[Row].Clear();                        // only after passing cursor line
+      }
+      break;
+    }
+  }
+  m_pTermWnd->RedrawWindow(NULL,NULL,RDW_INVALIDATE | RDW_ERASE);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 void CEVT100Doc::OnUpdateViewClear(CCmdUI* pCmdUI) 
 {
 	pCmdUI->Enable(true);

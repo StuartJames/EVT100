@@ -87,6 +87,12 @@ typedef enum EscState_e{
 	ESC_PROC_STRING
 } EscState_e;
 
+typedef enum EraseMode_e{
+	EM_ALL = 0,
+	EM_TO_CURSOR,
+	EM_FROM_CURSOR
+} EraseMode_e;
+
 typedef struct Wrap_t{
 	bool Line;
   bool View;

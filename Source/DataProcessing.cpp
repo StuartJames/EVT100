@@ -190,11 +190,13 @@ int j, ExitState = ESC_PROC_NORMAL;                                       // def
     case 	'J':{      
       pToken = strtok_s(m_EscapeArgs, CoSeDe, &pNextToken); 
       if((pToken == nullptr) || (*pToken == '0')){                        // Erase from cursor to end of screen
+        ScreenErase(EM_FROM_CURSOR);
       }
       else if(*pToken == '1'){                                            // Erase from beginning of screen to cursor
+        ScreenErase(EM_TO_CURSOR);
       }
       else if(*pToken == '2'){                                            // Erase entire screen
-        OnViewClear();
+        ScreenErase(EM_ALL);
       }
       break;
     }
@@ -317,10 +319,10 @@ int j, ExitState = ESC_PROC_NORMAL;                                       // def
 void CEVT100Doc::IncLineIndex(int Inc)
 {
   for(int i = 0; i < Inc; ++i){
-    m_CursorPos.y = (m_CursorPos.y + 1) % MAXROW;
-    if(m_CursorPos.y == m_TopRow){
+    m_CursorPos.y = (m_CursorPos.y + 1) % MAXROW;       // buffers arranged as a cylinder
+    if(m_CursorPos.y == m_TopRow){                      // scroll if looped
       m_TopRow = (m_TopRow + 1) % MAXROW;
-      m_Scrolled++;
+      m_Scrolled++;                                     // view should set scroll bar
     }
   }
 }
@@ -330,7 +332,7 @@ void CEVT100Doc::IncLineIndex(int Inc)
 void CEVT100Doc::DecLineIndex(int Dec)
 {
   for(int i = 0; i < Dec; ++i){
-    if(m_CursorPos.y == m_TopRow) return;
+    if(m_CursorPos.y == m_TopRow) return;               // only as far as the top line
     m_CursorPos.y = (m_CursorPos.y - 1) % MAXROW;
   }
 }

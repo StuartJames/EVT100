@@ -276,6 +276,22 @@ BOOL CEVT100View::OnEraseBkgnd(CDC* pDC)
 
 /////////////////////////////////////////////////////////////////////////////
 
+int CEVT100View::GetRowCount(void)
+{
+int Row = 0, EndRow;
+CPoint ScrollPos;
+CRect rect;
+
+GetClientRect(&rect);
+  ScrollPos = GetScrollPosition();
+  rect.top += ScrollPos.y;
+  rect.bottom += ScrollPos.y;
+  EndRow = min(MAXROW - 1, (rect.bottom - 1) / m_CharSize.cy);
+  return EndRow;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 void CEVT100View::OnDraw(CDC* pDC)
 {
 CEVT100Doc *pDoc = GetDocument();
@@ -324,7 +340,7 @@ CRect rect;
             TextCol = RGBFromAnsi256((Attr >> ATTR_FORE_SHIFT) & 0xFF);
             BackCol = RGBFromAnsi256((Attr >> ATTR_BACK_SHIFT) & 0xFF);
           }
-          if(((Attr & ATTR_BLINK) > 0) && m_BlinkText) TextCol = BackCol;           // hide the text
+          if(((Attr & ATTR_BLINK) > 0) && m_BlinkText) TextCol = BackCol;           // hide the text by overiding colour
           MemDC->SetTextColor(TextCol);
           MemDC->SetBkColor(BackCol);
           if(i < AttrCount) pDoc->m_Screen[Line].GetAttr(i++, &Attr, &SegEnd);      // get the next attribute if any
