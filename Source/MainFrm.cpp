@@ -21,11 +21,13 @@
  */
 
 #include "stdafx.h"
+#include "Globals.h"
 #include "EVT100Defs.h"
 #include "SplashWnd.h"
 #include "EVT100.h"
 #include "EVT100Doc.h"
 #include "MainFrm.h"
+#include "EVT100VisualManager.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -33,26 +35,10 @@ static char BASED_CODE THIS_FILE[] = __FILE__;
 #endif
 
 /////////////////////////////////////////////////////////////////////////////
-// CMainFrame
-
-IMPLEMENT_DYNCREATE(CMainFrame, CFrameWnd)
-
-BEGIN_MESSAGE_MAP(CMainFrame, CFrameWnd)
-	ON_WM_CREATE()
-	ON_WM_CLOSE()
-	ON_WM_TIMER()
-	ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
-	ON_COMMAND(ID_FILE_CONNECT, OnConnect)
-	ON_COMMAND(ID_FILE_DISCONNECT, OnConnect)
-	ON_UPDATE_COMMAND_UI(ID_FILE_CONNECT, OnUpdateConnect)
-	ON_UPDATE_COMMAND_UI(ID_FILE_DISCONNECT, OnUpdateConnect)
-END_MESSAGE_MAP()
-
-/////////////////////////////////////////////////////////////////////////////
 // arrays of IDs used to initialize control bars
 	
 // toolbar buttons - IDs are command buttons
-static UINT BASED_CODE buttons[] =
+static UINT buttons[] =
 {
 	ID_FILE_CONNECT,
 	ID_SEPARATOR,
@@ -61,7 +47,7 @@ static UINT BASED_CODE buttons[] =
 	IDM_VIEW_CLEAR,
 };
 
-static UINT BASED_CODE indicators[] =
+static UINT indicators[] =
 {
 	ID_SEPARATOR,       
 	ID_INDICATOR_CAPS,
@@ -112,16 +98,43 @@ char szBuffer[sizeof("-32767") * 8 + sizeof("65535") * 2];
 }
 
 /////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+// CMainFrame
+
+IMPLEMENT_DYNCREATE(CMainFrame, CFrameWndEx)
+
+BEGIN_MESSAGE_MAP(CMainFrame, CFrameWndEx)
+  ON_WM_CREATE()
+  ON_WM_CLOSE()
+  ON_WM_TIMER()
+  ON_COMMAND(ID_APP_ABOUT, OnAppAbout)
+  ON_COMMAND(ID_FILE_CONNECT, OnConnect)
+  ON_COMMAND(ID_FILE_DISCONNECT, OnConnect)
+  ON_UPDATE_COMMAND_UI(ID_FILE_CONNECT, OnUpdateConnect)
+  ON_UPDATE_COMMAND_UI(ID_FILE_DISCONNECT, OnUpdateConnect)
+  ON_MESSAGE(WM_CTLCOLORSCROLLBAR, OnCtlColorScrollBar)
+  ON_MESSAGE(WM_CTLCOLORDLG, OnCtlColorScrollBar)
+END_MESSAGE_MAP()
+
+LRESULT CMainFrame::OnCtlColorScrollBar(WPARAM wParam, LPARAM lParam)
+{
+  CDC *pDC = CDC::FromHandle((HDC)wParam);
+  return (LRESULT)(HBRUSH)m_BkGndBrush;
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 CMainFrame::CMainFrame()
 {
+  m_BkGndBrush.CreateSolidBrush(RGB(20,20,20)); 
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 CMainFrame::~CMainFrame()
 {
+  m_BkGndBrush.DeleteObject();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -130,11 +143,11 @@ BOOL CMainFrame::PreCreateWindow(CREATESTRUCT& cs)
 {
 WNDCLASS wndcls;
 
-	BOOL bRes = CFrameWnd::PreCreateWindow(cs);
+	BOOL bRes = CFrameWndEx::PreCreateWindow(cs);
   HINSTANCE hInst = AfxGetInstanceHandle();
   if (!::GetClassInfo(hInst, szEVT100Class, &wndcls)){	// see if the class already exists
     ::GetClassInfo(hInst, cs.lpszClass, &wndcls);	// get default stuff
-    wndcls.style &= ~(CS_HREDRAW|CS_VREDRAW);
+    wndcls.style &= ~(CS_HREDRAW | CS_VREDRAW);
     wndcls.lpszClassName = szEVT100Class;              // register a new class
     wndcls.hIcon = ::LoadIcon(hInst, MAKEINTRESOURCE(IDR_MAINFRAME));
     ASSERT(wndcls.hIcon != NULL);
@@ -148,24 +161,40 @@ WNDCLASS wndcls;
 
 int CMainFrame::OnCreate(LPCREATESTRUCT lpCreateStruct)
 {
-  if (CFrameWnd::OnCreate(lpCreateStruct) == -1) return -1;
-  EnableDocking(CBRS_ALIGN_ANY);
-  WINDOWPLACEMENT wp;
+WINDOWPLACEMENT wp;
+
+  if(CFrameWndEx::OnCreate(lpCreateStruct) == -1) return -1;
+  CMFCVisualManager::SetDefaultManager(RUNTIME_CLASS(CVT100VisualManager));
   if(ReadWindowPlacement(&wp)) SetWindowPlacement(&wp);
-//  if (!m_wndToolBar.Create(this) || !m_wndToolBar.LoadBitmap(IDR_MAINFRAME) || !m_wndToolBar.SetButtons(buttons, sizeof(buttons)/sizeof(UINT))){
-	if(!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_GRIPPER | CBRS_SIZE_DYNAMIC) ||
+  if(!m_wndMenuBar.Create(this)){
+    TRACE0("Failed to create menubar\n");
+    return -1; 
+  }
+  m_wndMenuBar.SetPaneStyle(m_wndMenuBar.GetPaneStyle() | CBRS_SIZE_DYNAMIC | CBRS_TOOLTIPS | CBRS_FLYBY);
+  CMFCPopupMenu::SetForceMenuFocus(FALSE);     // prevent the menu bar from taking the focus on activation     
+  if(!m_wndToolBar.CreateEx(this, TBSTYLE_FLAT, WS_CHILD | WS_VISIBLE | CBRS_TOP | CBRS_GRIPPER |	CBRS_TOOLTIPS | CBRS_FLYBY | CBRS_SIZE_DYNAMIC) ||
     !m_wndToolBar.LoadToolBar(IDR_DISCONNECTED)){
     TRACE0("Failed to create toolbar\n");
-    return -1;      // fail to create general toolbar
+    return -1;   
   }
+  m_wndToolBar.AutoGrayInactiveImages(FALSE, 0, TRUE);
   if (!m_wndStatusBar.Create(this) || !m_wndStatusBar.SetIndicators(indicators, sizeof(indicators)/sizeof(UINT))){
     TRACE0("Failed to create status bar\n");
-    return -1;      // fail to create
+    return -1;   
   }
+  m_wndStatusBar.PostMessage(SB_SETTEXT, 1 | SBT_OWNERDRAW, (LPARAM)0);
+  m_wndStatusBar.SetPaneWidth(0, 400);
+  m_wndMenuBar.EnableDocking(CBRS_ALIGN_TOP);
   m_wndToolBar.EnableDocking(CBRS_ALIGN_ANY);
   EnableDocking(CBRS_ALIGN_ANY);
-  DockControlBar(&m_wndToolBar);
-  m_wndToolBar.SetBarStyle(m_wndToolBar.GetBarStyle() |	CBRS_TOOLTIPS | CBRS_FLYBY);
+  DockPane(&m_wndMenuBar);
+  DockPane(&m_wndToolBar);
+  CDockingManager::SetDockingMode(DT_SMART);
+  EnableAutoHidePanes(CBRS_ALIGN_TOP);
+//  EnablePaneMenu(TRUE, ID_VIEW_CUSTOMIZE, strCustomize, ID_VIEW_TOOLBAR);
+  CRect rc(0,0,0,0);
+  VERIFY(m_wndHScroll.Create(WS_VISIBLE | WS_CHILD | SBS_HORZ, rc, this, AFX_IDW_HSCROLL_FIRST));
+  VERIFY(m_wndVScroll.Create(WS_VISIBLE | WS_CHILD | SBS_VERT, rc, this, AFX_IDW_HSCROLL_FIRST + 1));
   SetWindowText("EVT100");  // set the name of the main window
   return 0;
 }
@@ -179,10 +208,10 @@ WINDOWPLACEMENT wp;
   wp.length = sizeof wp;
   if(GetWindowPlacement(&wp)){
     wp.flags = 0;
-    if (IsZoomed()) wp.flags |= WPF_RESTORETOMAXIMIZED;
+    if(IsZoomed()) wp.flags |= WPF_RESTORETOMAXIMIZED;
     WriteWindowPlacement(&wp);
   }
-  CFrameWnd::OnClose();
+  CFrameWndEx::OnClose();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -190,14 +219,14 @@ WINDOWPLACEMENT wp;
 #ifdef _DEBUG
 void CMainFrame::AssertValid() const
 {
-	CFrameWnd::AssertValid();
+  CFrameWndEx::AssertValid();
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 void CMainFrame::Dump(CDumpContext& dc) const
 {
-	CFrameWnd::Dump(dc);
+	CFrameWndEx::Dump(dc);
 }
 
 #endif //_DEBUG
@@ -225,9 +254,6 @@ void CMainFrame::OnTimer(UINT_PTR nIDEvent)
 
 void CMainFrame::OnAppAbout()
 {
-//CAboutDlg aboutDlg;
-
-//  aboutDlg.DoModal();
 	CSplashWnd::ShowSplashScreen(0, IDB_SPLASH, this);
 }
 /////////////////////////////////////////////////////////////////////////////
@@ -245,8 +271,10 @@ void CMainFrame::OnConnect()
 	if(pDoc == NULL) return;
   if(pDoc->m_IsConnected) pDoc->CloseConnection();
   else if(!pDoc->OpenConnection()) AfxMessageBox(IDS_CONNECTION_FAILED, MB_OK | MB_ICONEXCLAMATION);
+  CMFCToolBar::ResetAllImages();
   if(!pDoc->m_IsConnected) m_wndToolBar.LoadBitmap(IDR_DISCONNECTED);
   else m_wndToolBar.LoadBitmap(IDR_CONNECTED);
+  m_wndToolBar.Invalidate();
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -262,7 +290,7 @@ void CMainFrame::OnUpdateConnect(CCmdUI* pCmdUI)
 BOOL CMainFrame::PreTranslateMessage(MSG* pMsg) 
 {
   CEVT100Doc* pDoc = (CEVT100Doc*)GetDocument();
-	return CFrameWnd::PreTranslateMessage(pMsg);
+  return CFrameWndEx::PreTranslateMessage(pMsg);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -271,9 +299,34 @@ void CMainFrame::SetWindowTitle(CString Title)
 {
 CString cstr;
 
-
   if(Title.IsEmpty()) cstr.Format(_T("EVT100"), (LPCSTR)Title);
   else cstr.Format(_T("EVT100 - %s"), (LPCSTR)Title);
   SetWindowText(cstr);  // set the name of the main window
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CMainFrame::RecalcLayout(BOOL bNotify)
+{
+  CFrameWndEx::RecalcLayout(bNotify);
+  CView* pView = GetActiveView();
+  if(pView != NULL) {
+    CRect rc;
+    pView->GetWindowRect(&rc);
+    ScreenToClient(&rc);
+    int cyHScroll = GetSystemMetrics(SM_CYHSCROLL);
+    int cxVScroll = GetSystemMetrics(SM_CXVSCROLL);
+    rc.right -= cxVScroll;
+    rc.bottom -= cyHScroll;
+    pView->MoveWindow(rc);
+    rc.left = rc.right;
+    rc.right += cxVScroll;
+    m_wndVScroll.MoveWindow(rc);
+    rc.left = 0;
+    rc.right -= cxVScroll;
+    rc.top = rc.bottom;
+    rc.bottom+= cyHScroll;
+    m_wndHScroll.MoveWindow(rc);
+  }
 }
 

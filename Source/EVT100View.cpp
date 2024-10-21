@@ -23,10 +23,11 @@
 #include "stdafx.h"
 #include "EVT100Defs.h"
 #include "EVT100.h"
+#include "MainFrm.h"
 #include "EVT100Doc.h"
 #include "EVT100View.h"
 #include "EVTColorPalette.h"
-#include "MemDC.h"
+#include "XMemDC.h"
 
 
 #ifdef _DEBUG
@@ -34,6 +35,9 @@
 #undef THIS_FILE
 static char THIS_FILE[] = __FILE__;
 #endif
+
+#define MM_NONE             0
+#define MM_SCALETOFIT       (-1)
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -50,6 +54,9 @@ BEGIN_MESSAGE_MAP(CEVT100View, CScrollView)
   ON_WM_TIMER()
 	ON_COMMAND(IDM_VIEW_PAUSE, OnPause)
 	ON_UPDATE_COMMAND_UI(IDM_VIEW_PAUSE, OnUpdatePause)
+  ON_WM_HSCROLL()
+  ON_WM_VSCROLL()
+  ON_WM_CREATE()
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -65,6 +72,13 @@ CEVT100View::CEVT100View()
   m_MaxCol = 0;
   m_CharSize.cx = 8;
   m_CharSize.cy = 15;
+  m_nMapMode = MM_NONE;
+  m_totalLog.cx = m_totalLog.cy = 0;
+  m_totalDev.cx = m_totalDev.cy = 0;
+  m_pageDev.cx  = m_pageDev.cy  = 0;
+  m_lineDev.cx  = m_lineDev.cy  = 0;
+  m_bCenter = FALSE;            
+  m_bInsideUpdate = FALSE;;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -82,6 +96,23 @@ CEVT100View::~CEVT100View()
   }
   if(m_InBlock) delete m_InBlock;
 //  KillTimer(IDT_BLINKTIMEOUT);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+BOOL CEVT100View::PreCreateWindow(CREATESTRUCT& cs)
+{
+  cs.style &= ~WS_BORDER;
+  //use our custom CHeaderCtrl
+  return CScrollView::PreCreateWindow(cs);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+int CEVT100View::OnCreate(LPCREATESTRUCT lpCreateStruct)
+{
+  if(CScrollView::OnCreate(lpCreateStruct) == -1) return -1;
+  return 0;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -135,6 +166,7 @@ MSG msg;
       case EV_ERR:
       case EV_BREAK:
         pDoc->FormatScreenData(IDS_COMM_OVF_FRM_ERROR);
+        [[fallthrough]];
       case EV_RXCHAR:
 		    do{
 			    while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)) AfxGetApp()->PumpMessage();
@@ -282,7 +314,7 @@ int Row = 0, EndRow;
 CPoint ScrollPos;
 CRect rect;
 
-GetClientRect(&rect);
+  GetClientRect(&rect);
   ScrollPos = GetScrollPosition();
   rect.top += ScrollPos.y;
   rect.bottom += ScrollPos.y;
@@ -306,7 +338,7 @@ CRect rect;
   if(m_Pause) return;
   ASSERT_VALID(pDoc);
   pDC->SetBkColor(BackCol);                                                       // required so that MemDC sets a blank canvas
-  CMemDC MemDC(pDC);
+  CXMemDC MemDC(pDC);
 	CBrush backBrush(RGB(0, 0, 0));
   SetFont(MemDC, pOldFont, 0);                                                    // set font
   GetClientRect(&rect);
@@ -408,7 +440,7 @@ RECT clientRect;
   scrollPos = GetScrollPosition();  	                                          // Calculate cursor position on view
   newPos.x = SCRN_MARGIN_X + pDoc->m_CursorPos.x * m_CharSize.cx - scrollPos.x;
   newPos.y = (((pDoc->m_CursorPos.y + MAXROW - pDoc->m_TopRow) % MAXROW) + m_WrapRows) * m_CharSize.cy - scrollPos.y;
-  if(m_CaretVisible)	SetCaretPos(newPos);
+  if(m_CaretVisible) SetCaretPos(newPos);
   if(CheckScroll){	                                                            // If bScroll is TRUE, scroll view to show cursor
     toPos.x = scrollPos.x;
     toPos.y = scrollPos.y;
@@ -431,7 +463,7 @@ RECT clientRect;
     }
     if(pDoc->m_Scrolled > 0){
       toPos.y += pDoc->m_Scrolled * m_CharSize.cy;
-      if (m_nMapMode != MM_TEXT){
+      if(m_nMapMode != MM_TEXT){
 				CWindowDC dc(NULL);
 				dc.SetMapMode(m_nMapMode);
 				dc.LPtoDP((LPPOINT)&toPos);
@@ -516,5 +548,12 @@ void CEVT100View::OnUpdatePause(CCmdUI* pCmdUI)
 	pCmdUI->Enable(GetDocument()->m_IsConnected);
 }
 
+/////////////////////////////////////////////////////////////////////////////
 
-
+CScrollBar* CEVT100View::GetScrollBarCtrl(int nBar) const
+{  
+  CWnd* pParent = GetParent();
+  UINT nID = AFX_IDW_HSCROLL_FIRST;
+  if(nBar == SB_VERT) nID++;
+  return (CScrollBar*)pParent->GetDlgItem(nID);
+}

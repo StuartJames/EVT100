@@ -22,35 +22,41 @@
 
 #pragma once
 
+#include "EVT100ScrollBar.h"
+
 class CEVT100Doc;
 
-class CMainFrame : public CFrameWnd
+/////////////////////////////////////////////////////////////////////////////
+
+class CMainFrame : public CFrameWndEx
 {
-protected: // create from serialization only
+protected: 
 
 	DECLARE_DYNCREATE(CMainFrame)
 
 public:
 													CMainFrame();
+	virtual									~CMainFrame();
 
   CEVT100Doc*							GetDocument();
 	void										Initialize();
 	virtual BOOL						PreTranslateMessage(MSG* pMsg);
   void                    SetWindowTitle(CString Title);
 
-protected:
-	virtual BOOL						PreCreateWindow(CREATESTRUCT& cs);
-
-public:
-	virtual									~CMainFrame();
 #ifdef _DEBUG
 	virtual void						AssertValid() const;
 	virtual void						Dump(CDumpContext& dc) const;
 #endif
-	CStatusBar							m_wndStatusBar;
 
-protected:  // control bar embedded members
-	CToolBar								m_wndToolBar;
+protected:
+	virtual BOOL						PreCreateWindow(CREATESTRUCT& cs);
+
+	CMFCMenuBar							m_wndMenuBar;
+	CMFCToolBar							m_wndToolBar;
+	CMFCStatusBar						m_wndStatusBar;
+	CEVT100ScrollBar				m_wndHScroll;
+	CEVT100ScrollBar				m_wndVScroll;
+	CBrush									m_BkGndBrush;
 
 protected:
 	afx_msg int							OnCreate(LPCREATESTRUCT lpCreateStruct);
@@ -59,7 +65,11 @@ protected:
 	afx_msg void						OnAppAbout();
 	afx_msg void						OnConnect();
 	afx_msg void						OnUpdateConnect(CCmdUI* pCmdUI);
+	afx_msg LRESULT					OnCtlColorScrollBar(WPARAM wParam, LPARAM lParam);
+
 	DECLARE_MESSAGE_MAP()
+public:
+	virtual void RecalcLayout(BOOL bNotify = TRUE);
 };
 
 /////////////////////////////////////////////////////////////////////////////

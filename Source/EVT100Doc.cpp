@@ -124,7 +124,7 @@ COMSTAT CommStatus;
       if((dwEventType & EventTest) == EventTest){
         pDoc->m_EventType = EventTest;
         ResetEvent(pDoc->m_hPostEvent);   // notify primary thread that data is waiting
-        ((CWnd *)(pDoc->m_pTermWnd))->PostMessage(WM_COMMNOTIFY, (WPARAM)pDoc->m_idComDev, MAKELONG(COM_EVENT, 0));
+        ((CWnd *)(pDoc->m_pView))->PostMessage(WM_COMMNOTIFY, (WPARAM)pDoc->m_idComDev, MAKELONG(COM_EVENT, 0));
         WaitForSingleObject(pDoc->m_hPostEvent, INFINITE);  // Wait until WM_COMMNOTIFY is processed by the primary thread
         if(EventTest == EV_ERR) ClearCommError(pDoc->m_idComDev, &dwTransfer, &CommStatus);
       }
@@ -179,7 +179,7 @@ CEVT100Doc::CEVT100Doc()
   ZeroMemory(&m_osWrite, sizeof(OVERLAPPED));
   m_hPostEvent = NULL;
   m_pThread = NULL;
-  m_pTermWnd = NULL;
+  m_pView = NULL;
   m_CursorPos.SetPoint(0, 0);
   m_CursorSave.SetPoint(0, 0);
   m_TopRow = 0;
@@ -329,7 +329,7 @@ CString cstr;
   }
   SetCommMask(m_idComDev, EV_RXCHAR);
   if(m_IsConnected){	// Create secondary thread
- 	 	m_pTermWnd = pView;
+ 	 	m_pView = pView;
 		if((m_pThread = AfxBeginThread(CommWatchProc, this)) == NULL){
 		  m_IsConnected = FALSE;
 		  CloseHandle(m_idComDev);
@@ -578,21 +578,21 @@ CEVTSettingsDlg SettingsDlg;
 
 void CEVT100Doc::OnViewClear() 
 {
-  if(m_pTermWnd == NULL) return;
+  if(m_pView == NULL) return;
 	for(int i = 0; i < MAXROW; i++) m_Screen[i].Clear();
   m_CursorPos.SetPoint(0, 0);
   m_TopRow = 0;
   m_Scrolled = 0;
   m_pLineBuf = m_Screen[m_CursorPos.y].m_Str;
-  m_pTermWnd->SetSizes();
-  m_pTermWnd->RedrawWindow(NULL,NULL,RDW_INVALIDATE | RDW_ERASE);
+  m_pView->SetSizes();
+  m_pView->RedrawWindow(NULL, NULL, RDW_INVALIDATE | RDW_ERASE);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 void CEVT100Doc::ScreenErase(int Mode/*=0*/) 
 {
-int Row, RowCount = m_pTermWnd->GetRowCount();                                // get number of visible rows 
+int Row, RowCount = m_pView->GetRowCount();                                // get number of visible rows 
 
   switch(Mode){
     case EM_ALL:{
@@ -620,7 +620,7 @@ int Row, RowCount = m_pTermWnd->GetRowCount();                                //
       break;
     }
   }
-  m_pTermWnd->RedrawWindow(NULL,NULL,RDW_INVALIDATE | RDW_ERASE);
+  m_pView->RedrawWindow(NULL,NULL,RDW_INVALIDATE | RDW_ERASE);
 }
 
 /////////////////////////////////////////////////////////////////////////////

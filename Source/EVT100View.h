@@ -22,33 +22,45 @@
 
 #pragma once
 
-//constexpr auto WM_COMMNOTIFY		= 0x0444;			
+ 
+ //constexpr auto WM_COMMNOTIFY		= 0x0444;			
 constexpr auto COM_EVENT				= 0x04;
 constexpr auto INBLOCKSIZE			= 1024;
 constexpr auto SCRN_MARGIN_X		= 5;
 constexpr auto SCRN_MARGIN_Y		= 5;
 
+/////////////////////////////////////////////////////////////////////////////
+
 class CEVT100View : public CScrollView
 {
-protected: // create from serialization only
-	CEVT100View();
+protected: 
 	DECLARE_DYNCREATE(CEVT100View)
 
+								CEVT100View();
+
 protected:
-	bool		m_CaretVisible;	// Set when text cursor is displayed
-	CFont*	m_pFont;
-	CSize		m_CharSize;
-  BYTE*   m_InBlock;
-	POINT		m_CaretPos;
-	bool		m_BlinkText;
-	bool		m_Pause;
-	int			m_WrapRows;
-	int			m_MaxCol;
+	static AFX_DATA const SIZE sizeDefault;
+
+	bool					m_CaretVisible;	// Set when text cursor is displayed
+	CFont*				m_pFont;
+	CSize					m_CharSize;
+  BYTE*					m_InBlock;
+	POINT					m_CaretPos;
+	bool					m_BlinkText;
+	bool					m_Pause;
+	int						m_WrapRows;
+	int						m_MaxCol;
+	int						m_nMapMode;				 // mapping mode for window creation
+	CSize					m_totalLog;           // total size in logical units (no rounding)
+	CSize					m_totalDev;           // total size in device units
+	CSize					m_pageDev;            // per page scroll size in device units
+	CSize					m_lineDev;            // per line scroll size in device units
+	BOOL					m_bCenter;             // Center output if larger than total size
+	BOOL					m_bInsideUpdate;
 
 public:
-	CEVT100Doc* GetDocument();
+	CEVT100Doc*		GetDocument();
 
-public:
 	int						GetRowCount(void);
 	void					ScrollToCursor(bool CheckScroll = false);
 	void					SetFont(CDC* pDC, CFont *pOldFont, UINT Attr);
@@ -56,20 +68,19 @@ public:
 	void					SetSizes();
 	int						ExTextOut(CDC* pDC, int *pHorz, int *pVert, int Width, LPCSTR Str, int Length, bool ViewWrap);
 
-	public:
-	virtual void OnDraw(CDC* pDC);  // overridden to draw this view
-	virtual void OnInitialUpdate();
+	virtual void	OnDraw(CDC* pDC);  // overridden to draw this view
+	virtual void	OnInitialUpdate();
+	virtual				~CEVT100View();
+	virtual BOOL	PreCreateWindow(CREATESTRUCT& cs);
+	virtual CScrollBar* GetScrollBarCtrl(int nBar) const;
 
-public:
-	virtual ~CEVT100View();
 #ifdef _DEBUG
-	virtual void AssertValid() const;
-	virtual void Dump(CDumpContext& dc) const;
+	virtual void	AssertValid() const;
+	virtual void	Dump(CDumpContext& dc) const;
 #endif
 
 protected:
-
-protected:
+	afx_msg int OnCreate(LPCREATESTRUCT lpCreateStruct);
 	afx_msg void OnChar(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnKeyDown(UINT nChar, UINT nRepCnt, UINT nFlags);
 	afx_msg void OnKillFocus(CWnd* pNewWnd);

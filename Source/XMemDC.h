@@ -36,7 +36,7 @@
 
 #pragma once
 
-class CMemDC : public CDC
+class CXMemDC : public CDC
 {
 private:
   CBitmap		m_bitmap;		// Offscreen bitmap
@@ -46,7 +46,7 @@ private:
   BOOL		m_bMemDC;		// TRUE if CDC really is a Memory DC.
 public:
 
-  CMemDC(CDC* pDC, const CRect* pRect = NULL, bool boolToMemory = TRUE) : CDC()
+  CXMemDC(CDC* pDC, const CRect* pRect = NULL, bool boolToMemory = TRUE) : CDC()
   {
     ASSERT(pDC != NULL);
 
@@ -80,7 +80,7 @@ public:
   }
 
 
-  ~CMemDC()
+  ~CXMemDC()
   {
     if(m_bMemDC) {
       m_pDC->BitBlt(m_rect.left, m_rect.top, m_rect.Width(), m_rect.Height(), this, m_rect.left, m_rect.top, SRCCOPY);   // Copy the offscreen bitmap onto the screen.
@@ -92,13 +92,13 @@ public:
   }
 
   // Allow usage as a pointer	
-  CMemDC* operator->()
+  CXMemDC* operator->()
   {
     return this;
   }
 
   // Allow usage as a pointer	
-  operator CMemDC*()
+  operator CXMemDC*()
   {
     return this;
   }

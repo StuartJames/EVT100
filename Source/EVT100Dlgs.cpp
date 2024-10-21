@@ -25,6 +25,7 @@
 #include "Evt100.h"
 #include "Evt100Dlgs.h"
 #include <afxadv.h>
+#include "EVT100VisualManager.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -64,21 +65,21 @@ void PASCAL DDV_HexText( CDataExchange *pDX, long& value, BOOL &flag)
 /////////////////////////////////////////////////////////////////////////////
 
 CAboutDlg::CAboutDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CAboutDlg::IDD, pParent)
+	: CDialogEx(CAboutDlg::IDD, pParent)
 {
 }
 
 void CAboutDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogEx::DoDataExchange(pDX);
 }
 
-BEGIN_MESSAGE_MAP(CAboutDlg, CDialog)
+BEGIN_MESSAGE_MAP(CAboutDlg, CDialogEx)
 END_MESSAGE_MAP()
 
 BOOL CAboutDlg::OnInitDialog()
 {
-	CDialog::OnInitDialog();
+	CDialogEx::OnInitDialog();
 	m_bitmap.SubclassDlgItem(IDB_ELBIEYE, this);
 	return TRUE;  // return TRUE  unless you set the focus to a control
 }
@@ -110,7 +111,7 @@ CBitmap Bitmap;
 /////////////////////////////////////////////////////////////////////////////
 
 CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
-	: CDialog(CEVTSettingsDlg::IDD, pParent)
+	: CDialogEx(CEVTSettingsDlg::IDD, pParent)
 {
 	m_LineWrap = FALSE;
 	m_ViewWrap = FALSE;
@@ -130,13 +131,17 @@ CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 	m_LogFont.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
 	strcpy_s(m_LogFont.lfFaceName, sizeof(m_LogFont.lfFaceName), "FixedSys");
 	m_IsConnected = FALSE;
+	m_BgColor = CLR_BAR_BACKGROUND;
+	m_FgColor = CLR_MENU_TEXT_NORM;
+	m_BgBrush.CreateSolidBrush(m_BgColor);
+
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 {
-	CDialog::DoDataExchange(pDX);
+	CDialogEx::DoDataExchange(pDX);
 	DDX_Check(pDX, IDC_LINEWRAP, m_LineWrap);
 	DDX_Check(pDX, IDC_VIEWWRAP, m_ViewWrap);
 	DDX_CBString(pDX, IDC_BAUDCB, m_Baud);
@@ -153,7 +158,8 @@ void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 
 /////////////////////////////////////////////////////////////////////////////
 
-BEGIN_MESSAGE_MAP(CEVTSettingsDlg, CDialog)
+BEGIN_MESSAGE_MAP(CEVTSettingsDlg, CDialogEx)
+	ON_WM_CTLCOLOR()
 END_MESSAGE_MAP()
 
 
@@ -161,8 +167,22 @@ END_MESSAGE_MAP()
 
 BOOL CEVTSettingsDlg::OnInitDialog() 
 {
-	CDialog::OnInitDialog();
+	CDialogEx::OnInitDialog();
+//	SetBackgroundColor(m_BgColor);
 	((CComboBox *)GetDlgItem(IDC_PORTCB))->EnableWindow(!m_IsConnected);
 	return TRUE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+HBRUSH CEVTSettingsDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+
+/*	if(nCtlColor == CTLCOLOR_MSGBOX || nCtlColor == CTLCOLOR_DLG) {
+		pDC->SetTextColor(m_FgColor);
+		pDC->SetBkColor(m_BgColor);
+		return (HBRUSH) m_BgBrush.GetSafeHandle();
+	}*/
+	return CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
 }
 

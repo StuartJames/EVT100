@@ -28,6 +28,9 @@
 #include "EVT100Doc.h"
 #include "EVT100View.h"
 #include "EVT100Dlgs.h"
+#include "globals.h"
+#include <dwmapi.h>
+#include "EVT100VisualManager.h"
 
 #ifdef _DEBUG
 #undef THIS_FILE
@@ -50,9 +53,9 @@ const TCHAR szEVT100Class[] = _T("EVT100Class");
 /////////////////////////////////////////////////////////////////////////////
 // CEVT100App
 
-BEGIN_MESSAGE_MAP(CEVT100App, CWinApp)
-//	ON_COMMAND(ID_FILE_NEW, CWinApp::OnFileNew)
-//	ON_COMMAND(ID_FILE_OPEN, CWinApp::OnFileOpen)
+BEGIN_MESSAGE_MAP(CEVT100App, CWinAppEx)
+//	ON_COMMAND(ID_FILE_NEW, CWinAppEx::OnFileNew)
+//	ON_COMMAND(ID_FILE_OPEN, CWinAppEx::OnFileOpen)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
@@ -75,13 +78,23 @@ BOOL CEVT100App::InitInstance()
   LoadStdProfileSettings();  // Load standard INI file options (including MRU)
   CSplashWnd::InitialiseRegions(Regions, true);
   CSingleDocTemplate* pDocTemplate;
+  INITCOMMONCONTROLSEX CommonControls;
+  CommonControls.dwSize = sizeof(INITCOMMONCONTROLSEX);
+  CommonControls.dwICC = ICC_STANDARD_CLASSES;  // I could not see any effect of the specific value here
+  InitCommonControlsEx(&CommonControls);
+  InitContextMenuManager();
+  InitKeyboardManager();
+  InitTooltipManager();
+  CMFCToolTipInfo ttParams;
+  ttParams.m_bVislManagerTheme = TRUE;
+  theApp.GetTooltipManager()->SetTooltipParams(AFX_TOOLTIP_TYPE_ALL,RUNTIME_CLASS(CMFCToolTipCtrl), &ttParams);
   pDocTemplate = new CSingleDocTemplate(IDR_MAINFRAME,RUNTIME_CLASS(CEVT100Doc),RUNTIME_CLASS(CMainFrame),RUNTIME_CLASS(CEVT100View));
   AddDocTemplate(pDocTemplate);
   CCommandLineInfo cmdInfo; 
 	ParseCommandLine(cmdInfo);
   if(!ProcessShellCommand(cmdInfo)) return FALSE;
-  m_nCmdShow = SW_SHOWNORMAL;
   CSplashWnd::ShowSplashScreen(SPLASH_TIME, IDB_SPLASH, m_pMainWnd);// show main frame before this statement so that correct screen is used
+  SetFrameColours(); 
   m_pMainWnd->UpdateWindow();
   ((CMainFrame*)m_pMainWnd)->Initialize();        // Show any previouse views
   return TRUE;
@@ -91,7 +104,20 @@ BOOL CEVT100App::InitInstance()
 
 int CEVT100App::ExitInstance() 
 {
-  return CWinApp::ExitInstance();
+  return CWinAppEx::ExitInstance();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CEVT100App::SetFrameColours() 
+{
+BOOL value = TRUE;
+COLORREF CapCol = CLR_CAPTION_COLOR;
+COLORREF BrdCol = CLR_BOARDER_COLOR;
+
+  ::DwmSetWindowAttribute(m_pMainWnd->m_hWnd, DWMWA_USE_IMMERSIVE_DARK_MODE, &value, sizeof(value));
+  ::DwmSetWindowAttribute(m_pMainWnd->m_hWnd, DWMWA_CAPTION_COLOR, &CapCol, sizeof(CapCol));
+  ::DwmSetWindowAttribute(m_pMainWnd->m_hWnd, DWMWA_BORDER_COLOR, &BrdCol, sizeof(BrdCol));
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -99,5 +125,5 @@ int CEVT100App::ExitInstance()
 BOOL CEVT100App::PreTranslateMessage(MSG* pMsg)
 {
 	if(CSplashWnd::PreTranslateAppMessage(pMsg)) return TRUE;
-  return CWinApp::PreTranslateMessage(pMsg);
+  return CWinAppEx::PreTranslateMessage(pMsg);
 }

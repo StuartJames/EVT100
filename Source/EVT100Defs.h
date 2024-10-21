@@ -69,7 +69,6 @@ constexpr auto ASCII_ESC	            = 0x1B;
 
 constexpr auto MAX_ESC_ARGS           = 8;
 
-
 // System Message text colours
 #define MSGTEXT_WHITE			'0'
 #define MSGTEXT_RED				'1'

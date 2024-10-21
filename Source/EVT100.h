@@ -32,10 +32,11 @@ extern const TCHAR szEVT100Class[];
 
 /////////////////////////////////////////////////////////////////////////////
 
-class CEVT100App : public CWinApp
+class CEVT100App : public CWinAppEx
 {
 public:
 									CEVT100App();
+	void						SetFrameColours();
 
 	virtual BOOL		InitInstance();
 	virtual int			ExitInstance();

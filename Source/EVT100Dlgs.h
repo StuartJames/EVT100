@@ -43,7 +43,7 @@ protected:
 /////////////////////////////////////////////////////////////////////////////
 // CAboutBox dialog
 
-class CAboutDlg : public CDialog
+class CAboutDlg : public CDialogEx
 {
 	CAboutBitmap	m_bitmap;
 
@@ -63,7 +63,7 @@ protected:
 /////////////////////////////////////////////////////////////////////////////
 // CEVTSettingsDlg dialog
 
-class CEVTSettingsDlg : public CDialog
+class CEVTSettingsDlg : public CDialogEx
 {
 public:
 	CEVTSettingsDlg(CWnd* pParent = NULL);   // standard constructor
@@ -87,8 +87,12 @@ public:
 protected:
 	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
-protected:
+	COLORREF	m_BgColor;
+	COLORREF	m_FgColor;
+	CBrush		m_BgBrush;
 
-	virtual BOOL OnInitDialog();
+	virtual	BOOL		OnInitDialog();
+	virtual	HBRUSH	OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+
 	DECLARE_MESSAGE_MAP()
 };

@@ -67,7 +67,7 @@ protected:
 public:
 	bool					m_IsConnected;
 	HANDLE				m_idComDev;
-	CEVT100View		*m_pTermWnd;		// The view window
+	CEVT100View		*m_pView;		// The view window
 	HANDLE				m_hPostEvent;	// To sync WM_COMMNOTIFY processing
 	CWinThread		*m_pThread;
 	OVERLAPPED		m_osWrite, m_osRead;

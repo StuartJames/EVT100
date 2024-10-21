@@ -32,7 +32,7 @@ bool CEVT100Doc::ProcessHostData(int nLength, LPSTR lpMessage)
 int i = 0;
 char *pToken = nullptr, *pNextToken = nullptr;
 
-  if(m_pTermWnd == NULL) return false;
+  if(m_pView == NULL) return false;
 //  lpMessage[nLength] = 0;
 //  TRACE(":%s.\n", lpMessage);
 	while(i < nLength){
@@ -64,7 +64,7 @@ char *pToken = nullptr, *pNextToken = nullptr;
           m_pLineBuf = m_Screen[m_CursorPos.y].m_Str;       // get a pointer to the character buffer
           m_Screen[m_CursorPos.y].Clear();
           m_Screen[m_CursorPos.y].PushAttr(m_CurrentAttr | ATTR_MARKER, m_CursorPos.x);
-      	  m_pTermWnd->SetSizes();
+      	  m_pView->SetSizes();
       	  break;
         default:
        	  m_pLineBuf[m_CursorPos.x++] = (lpMessage[i] & 0x7f);
@@ -73,7 +73,7 @@ char *pToken = nullptr, *pNextToken = nullptr;
             if(m_SoftWrap.Line) FormatScreenData("\n");     // start a new line
             else --m_CursorPos.x;                           // overwrite last character
           }
-//			 	  m_pTermWnd->Invalidate(FALSE);
+//			 	  m_pView->Invalidate(FALSE);
       	  break;
       }
     }
@@ -118,7 +118,7 @@ char *pToken = nullptr, *pNextToken = nullptr;
     }
     i++;
   }
-  m_pTermWnd->ScrollToCursor(true);
+  m_pView->ScrollToCursor(true);
   return true;
 }
 
