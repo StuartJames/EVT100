@@ -12,11 +12,9 @@
 *  GNU General Public License for more details.                    
 *                                                                  
 *
-*  Based on a design by Michael Haardt
-*
 * Edit Date/Ver   Edit Description
 * ==============  ===================================================
-* SJ   19/08/2020  Original
+* SJ   19/10/2020  Original
 *
 */
 
@@ -26,6 +24,7 @@
 #include <afxshowallbutton.h>
 
 // Internal Colours
+constexpr auto COLORREF_NULL					= (COLORREF)-1;
 constexpr auto CLR_RED_TEST						= RGB(240, 0,  0);
 constexpr auto CLR_CAPTION_COLOR			= RGB(30, 30, 30);
 constexpr auto CLR_BOARDER_COLOR			= RGB(0, 80, 0);
@@ -40,17 +39,73 @@ class CEVT100Doc;
 
 /////////////////////////////////////////////////////////////////////////////
 
+class CFontDC
+{
+public:
+							CFontDC(CDC *pDC, CFont *pFont = NULL);
+							CFontDC(CDC *pDC, CFont *pFont, COLORREF clrTextColor);    
+	virtual			~CFontDC();
+	void				SetFont(CFont *pFont);
+	void				SetColor(COLORREF clrTextColor);
+	void				SetFontColor(CFont *pFont, COLORREF clrTextColor);
+	void				ReleaseFont();
+	void				ReleaseColor();
+
+protected:
+	CDC					*m_pDC;       
+	CFont				*m_pOldFont;       
+	COLORREF		m_clrOldTextColor;       
+};
+
+/////////////////////////////////////////////////////////////////////////////
+
+class CPenDC
+{
+public:
+								CPenDC(CDC *pDC, CPen *pPen);
+								CPenDC(HDC hDC, COLORREF crColor);       
+	virtual				~CPenDC();
+
+	COLORREF			Color();
+	void					Color(COLORREF crColor);       
+
+protected:
+	CPen					m_pen;        
+	HDC						m_hDC;        
+	HPEN					m_hOldPen;    
+};
+
+/////////////////////////////////////////////////////////////////////////////
+
+class CBrushDC
+{
+public:
+								CBrushDC(HDC hDC, COLORREF crColor);
+	virtual				~CBrushDC();
+
+	void					Color(COLORREF crColor);
+	HBRUSH				GetHandle(){ return (HBRUSH)m_brush;};
+
+protected:
+	CBrush				m_brush;      
+	HDC						m_hDC;        
+	HBRUSH				m_hOldBrush;  
+};
+
+/////////////////////////////////////////////////////////////////////////////
+
 class CVT100VisualManager : public CMFCVisualManagerOfficeXP
 {
 protected: 
 	DECLARE_DYNCREATE(CVT100VisualManager)
+
+												CVT100VisualManager();
 
 	COLORREF							m_clrGrayedText;
 	COLORREF							m_clrTextNormal;
 	COLORREF							m_clrTextHilite;
 
 public:
-	CVT100VisualManager();
 	virtual								~CVT100VisualManager();
 	virtual void					OnUpdateSystemColors();	
 	virtual void					OnFillBarBackground(CDC* pDC, CBasePane* pBar, CRect rectClient, CRect rectClip, BOOL bNCArea = FALSE);	
@@ -66,7 +121,6 @@ public:
 	virtual BOOL					OnNcActivate(CWnd* pWnd, BOOL bActive);
 	virtual BOOL					OnNcPaint(CWnd* pWnd, const CObList& lstSysButtons, CRect rectRedraw);
 	virtual void					OnFillButtonInterior(CDC* pDC, CMFCToolBarButton* pButton, CRect rect, CMFCVisualManager::AFX_BUTTON_STATE state);
-	virtual void					OnDrawScrollButtons(CDC* pDC, const CRect& rect, const int nBorderSize, int iImage, BOOL bHilited);
 
 protected:
 

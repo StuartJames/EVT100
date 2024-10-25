@@ -12,11 +12,9 @@
 *  GNU General Public License for more details.                    
 *                                                                  
 *
-*  Based on a design by Michael Haardt
-*
 * Edit Date/Ver   Edit Description
 * ==============  ===================================================
-* SJ   19/08/2020  Original
+* SJ   19/10/2020  Original
 *
 */
 
@@ -29,6 +27,169 @@
 static char BASED_CODE THIS_FILE[] = __FILE__;
 #endif
 
+/////////////////////////////////////////////////////////////////////////////
+
+CFontDC::CFontDC(CDC* pDC, CFont* pFont)
+{
+	ASSERT(pDC);
+	m_pDC = pDC;
+	m_pOldFont = NULL;
+	m_clrOldTextColor = COLORREF_NULL;
+	if(pFont){
+		SetFont(pFont);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+CFontDC::CFontDC(CDC* pDC, CFont* pFont, COLORREF clrTextColor)
+{
+	ASSERT(pDC);
+	ASSERT(clrTextColor != COLORREF_NULL);
+	m_pDC = pDC;
+	m_pOldFont = NULL;
+	m_clrOldTextColor = COLORREF_NULL;
+	if(pFont){
+		SetFont(pFont);
+	}
+	SetColor(clrTextColor);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+CFontDC::~CFontDC()
+{
+	ReleaseFont();
+	ReleaseColor();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CFontDC::SetFont(CFont* pFont)
+{
+	if(m_pDC && pFont){
+		CFont* pFontPrev = m_pDC->SelectObject(pFont);
+		if(!m_pOldFont && pFontPrev){
+			m_pOldFont = pFontPrev;
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CFontDC::SetColor(COLORREF clrTextColor)
+{
+	ASSERT(clrTextColor != COLORREF_NULL);
+	ASSERT(m_pDC);
+	if(m_pDC && clrTextColor != COLORREF_NULL){
+		COLORREF clrTextColorPrev = m_pDC->SetTextColor(clrTextColor);
+		if(m_clrOldTextColor == COLORREF_NULL){
+			m_clrOldTextColor = clrTextColorPrev;
+		}
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CFontDC::SetFontColor(CFont* pFont, COLORREF clrTextColor)
+{
+	SetFont(pFont);
+	SetColor(clrTextColor);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CFontDC::ReleaseFont()
+{
+	ASSERT(m_pDC);
+	if(m_pDC && m_pOldFont){
+		m_pDC->SelectObject(m_pOldFont);
+		m_pOldFont = NULL;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CFontDC::ReleaseColor()
+{
+	ASSERT(m_pDC);
+	if(m_pDC && m_clrOldTextColor != COLORREF_NULL){
+		m_pDC->SetTextColor(m_clrOldTextColor);
+		m_clrOldTextColor = COLORREF_NULL;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+
+CPenDC::CPenDC(CDC* pDC, CPen* pPen) : m_hDC(pDC->GetSafeHdc())
+{
+	m_hOldPen = (HPEN)::SelectObject(m_hDC, pPen->GetSafeHandle());
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+CPenDC::CPenDC(HDC hDC, COLORREF crColor) : m_hDC(hDC)
+{
+	VERIFY(m_pen.CreatePen(PS_SOLID, 1, crColor));
+	m_hOldPen = (HPEN)::SelectObject(m_hDC, m_pen);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+CPenDC::~CPenDC()
+{
+	::SelectObject(m_hDC, m_hOldPen);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CPenDC::Color(COLORREF crColor)
+{
+	::SelectObject(m_hDC, m_hOldPen);
+	VERIFY(m_pen.DeleteObject());
+	VERIFY(m_pen.CreatePen(PS_SOLID, 1, crColor));
+	m_hOldPen = (HPEN)::SelectObject(m_hDC, m_pen);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+COLORREF CPenDC::Color()
+{
+	LOGPEN logPen;
+	m_pen.GetLogPen(&logPen);
+	return logPen.lopnColor;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+
+CBrushDC::CBrushDC(HDC hDC, COLORREF crColor) : m_hDC(hDC)
+{
+	VERIFY(m_brush.CreateSolidBrush(crColor));
+	m_hOldBrush = (HBRUSH)::SelectObject(m_hDC, m_brush);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+CBrushDC::~CBrushDC()
+{
+	::SelectObject(m_hDC, m_hOldBrush);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CBrushDC::Color(COLORREF crColor)
+{
+	::SelectObject(m_hDC, m_hOldBrush);
+	VERIFY(m_brush.DeleteObject());
+	VERIFY(m_brush.CreateSolidBrush(crColor));
+	m_hOldBrush = (HBRUSH)::SelectObject(m_hDC, m_brush);
+}
+
+/////////////////////////////////////////////////////////////////////////////
 /////////////////////////////////////////////////////////////////////////////
 
 IMPLEMENT_DYNCREATE(CVT100VisualManager, CMFCVisualManagerOfficeXP)
@@ -269,14 +430,5 @@ void CVT100VisualManager::OnFillButtonInterior(CDC* pDC, CMFCToolBarButton* pBut
 	if (!pButton->IsKindOf(RUNTIME_CLASS(CMFCOutlookBarPaneButton)) && !CMFCToolBar::IsCustomizeMode() &&	state != ButtonsIsHighlighted && (pButton->m_nStyle & (TBBS_CHECKED | TBBS_INDETERMINATE))) {
 	}				// do nothing
 }
-
-/////////////////////////////////////////////////////////////////////////////
-
-void CVT100VisualManager::OnDrawScrollButtons(CDC* pDC, const CRect& rect, const int nBorderSize, int iImage, BOOL bHilited)
-{
-	CMFCVisualManagerOfficeXP::OnDrawScrollButtons(pDC, rect, nBorderSize, iImage, bHilited);
-}
-
-/////////////////////////////////////////////////////////////////////////////
 
 

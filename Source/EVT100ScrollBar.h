@@ -12,11 +12,9 @@
 *  GNU General Public License for more details.                    
 *                                                                  
 *
-*  Based on a design by Michael Haardt
-*
 * Edit Date/Ver   Edit Description
 * ==============  ===================================================
-* SJ   19/08/2020  Original
+* SJ   20/10/2024  Original
 *
 */
 

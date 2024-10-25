@@ -12,11 +12,9 @@
 *  GNU General Public License for more details.                    
 *                                                                  
 *
-*  Based on a design by Michael Haardt
-*
 * Edit Date/Ver   Edit Description
 * ==============  ===================================================
-* SJ   19/08/2020  Original
+* SJ   20/10/2024  Original
 *
 */
 
@@ -58,7 +56,7 @@ CEVT100ScrollBar::CEVT100ScrollBar()
 	m_bPreSubclassInit = TRUE;
 	ZeroMemory(&m_spi, sizeof(m_spi));
 	m_pSBTrack = NULL;
-	m_crBack = RGB(30, 30, 30);
+	m_crBack = CLR_CAPTION_COLOR;
 }
 
 /////////////////////////////////////////////////////////////////////////////

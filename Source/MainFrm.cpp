@@ -1,27 +1,24 @@
 /*
- *        Copyright (c) 2020-2021 HydraSystems.
- *
- *  This program is free software; you can redistribute it and/or   
- *  modify it under the terms of the GNU General Public License as  
- *  published by the Free Software Foundation; either version 2 of  
- *  the License, or (at your option) any later version.             
- *                                                                  
- *  This program is distributed in the hope that it will be useful, 
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of  
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the   
- *  GNU General Public License for more details.                    
- *                                                                  
- *
- *  Based on a design by Michael Haardt
- *
- * Edit Date/Ver   Edit Description
- * ==============  ===================================================
- * SJ   19/08/2020  Original
- *
- */
+*        Copyright (c) 2020-2021 HydraSystems.
+*
+*  This program is free software; you can redistribute it and/or   
+*  modify it under the terms of the GNU General Public License as  
+*  published by the Free Software Foundation; either version 2 of  
+*  the License, or (at your option) any later version.             
+*                                                                  
+*  This program is distributed in the hope that it will be useful, 
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of  
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the   
+*  GNU General Public License for more details.                    
+*                                                                  
+*
+* Edit Date/Ver   Edit Description
+* ==============  ===================================================
+* SJ   19/10/2020  Original
+*
+*/
 
 #include "stdafx.h"
-#include "Globals.h"
 #include "EVT100Defs.h"
 #include "SplashWnd.h"
 #include "EVT100.h"
@@ -115,6 +112,7 @@ BEGIN_MESSAGE_MAP(CMainFrame, CFrameWndEx)
   ON_UPDATE_COMMAND_UI(ID_FILE_DISCONNECT, OnUpdateConnect)
   ON_MESSAGE(WM_CTLCOLORSCROLLBAR, OnCtlColorScrollBar)
   ON_MESSAGE(WM_CTLCOLORDLG, OnCtlColorScrollBar)
+  ON_WM_CTLCOLOR()
 END_MESSAGE_MAP()
 
 LRESULT CMainFrame::OnCtlColorScrollBar(WPARAM wParam, LPARAM lParam)
@@ -328,5 +326,17 @@ void CMainFrame::RecalcLayout(BOOL bNotify)
     rc.bottom+= cyHScroll;
     m_wndHScroll.MoveWindow(rc);
   }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+HBRUSH CMainFrame::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+  if(nCtlColor == CTLCOLOR_MSGBOX) {
+    pDC->SetTextColor(CLR_MENU_TEXT_NORM);
+    pDC->SetBkColor(CLR_BAR_BACKGROUND);
+    return (HBRUSH) m_BkGndBrush;
+  }	
+  return CFrameWndEx::OnCtlColor(pDC, pWnd, nCtlColor);
 }
 

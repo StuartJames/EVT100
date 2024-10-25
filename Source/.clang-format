@@ -1,0 +1,83 @@
+# Format Style Options - Created with Clang Power Tools
+---
+AccessModifierOffset: -2
+AlignAfterOpenBracket: DontAlign
+AlignEscapedNewlines: Right
+AlignTrailingComments: true
+AllowShortBlocksOnASingleLine: Empty
+AllowShortCaseLabelsOnASingleLine: true
+AllowShortLambdasOnASingleLine: All
+AllowShortEnumsOnASingleLine: true
+AllowShortFunctionsOnASingleLine: All
+AllowShortIfStatementsOnASingleLine: Always
+AllowShortLoopsOnASingleLine: true
+BraceWrapping: 
+  AfterCaseLabel: false
+  AfterClass: false
+  AfterControlStatement: false
+  AfterEnum: false
+  AfterFunction: false
+  AfterNamespace: false
+  AfterObjCDeclaration: false
+  AfterStruct: false
+  AfterUnion: false
+  AfterExternBlock: false
+  BeforeCatch: false
+  BeforeElse: false
+  IndentBraces: false
+  SplitEmptyFunction: false
+  SplitEmptyRecord: false
+  SplitEmptyNamespace: false
+  BeforeLambdaBody: false
+  BeforeWhile: false
+ColumnLimit: 256
+ConstructorInitializerIndentWidth : 2
+ContinuationIndentWidth: 2
+IndentCaseBlocks: true
+IndentCaseLabels: true
+IndentExternBlock: Indent
+IndentWidth: 2
+IndentWrappedFunctionNames: true
+KeepEmptyLinesAtTheStartOfBlocks: false
+MaxEmptyLinesToKeep: 1
+NamespaceIndentation: None
+RawStringFormats: 
+  - Language: Cpp
+    Delimiters:
+    - cc
+    - CC
+    - cpp
+    - Cpp
+    - CPP
+    - 'c++'
+    - 'C++'
+    CanonicalDelimiter: ''
+    BasedOnStyle: google
+  - Language: TextProto
+    Delimiters:
+    - pb
+    - PB
+    - proto
+    - PROTO
+    EnclosingFunctions:
+    - EqualsProto
+    - EquivToProto
+    - PARSE_PARTIAL_TEXT_PROTO
+    - PARSE_TEST_PROTO
+    - PARSE_TEXT_PROTO
+    - ParseTextOrDie
+    - ParseTextProtoOrDie
+    - ParseTestProto
+    - ParsePartialTestProto
+    CanonicalDelimiter: ''
+    BasedOnStyle: google
+SpaceBeforeParens: Never
+SpaceBeforeSquareBrackets: false
+SpacesBeforeTrailingComments: 2
+SpacesInAngles: false
+SpacesInCStyleCastParentheses: false
+SpacesInConditionalStatement: false
+SpacesInParentheses: false
+SpacesInSquareBrackets: false
+UseTab: ForIndentation
+...

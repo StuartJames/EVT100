@@ -1,29 +1,27 @@
 /*
- *        Copyright (c) 2020-2021 HydraSystems.
- *
- *  This program is free software; you can redistribute it and/or   
- *  modify it under the terms of the GNU General Public License as  
- *  published by the Free Software Foundation; either version 2 of  
- *  the License, or (at your option) any later version.             
- *                                                                  
- *  This program is distributed in the hope that it will be useful, 
- *  but WITHOUT ANY WARRANTY; without even the implied warranty of  
- *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the   
- *  GNU General Public License for more details.                    
- *                                                                  
- *
- *  Based on a design by Michael Haardt
- *
- * Edit Date/Ver   Edit Description
- * ==============  ===================================================
- * SJ   19/08/2020  Original
- *
- */
+*        Copyright (c) 2020-2021 HydraSystems.
+*
+*  This program is free software; you can redistribute it and/or   
+*  modify it under the terms of the GNU General Public License as  
+*  published by the Free Software Foundation; either version 2 of  
+*  the License, or (at your option) any later version.             
+*                                                                  
+*  This program is distributed in the hope that it will be useful, 
+*  but WITHOUT ANY WARRANTY; without even the implied warranty of  
+*  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the   
+*  GNU General Public License for more details.                    
+*                                                                  
+*
+* Edit Date/Ver   Edit Description
+* ==============  ===================================================
+* SJ   19/10/2020  Original
+*
+*/
 
 #include "stdafx.h"
 #include "Evt100Defs.h"
 #include "Evt100.h"
-#include "Evt100Dlgs.h"
+#include "Evt100Dialogs.h"
 #include <afxadv.h>
 #include "EVT100VisualManager.h"
 
@@ -63,7 +61,6 @@ void PASCAL DDV_HexText( CDataExchange *pDX, long& value, BOOL &flag)
 /////////////////////////////////////////////////////////////////////////////
 
 /////////////////////////////////////////////////////////////////////////////
-
 CAboutDlg::CAboutDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CAboutDlg::IDD, pParent)
 {
@@ -125,11 +122,11 @@ CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 	m_StopBits = -1;
 	m_XONXOFF = FALSE;
 	m_SerialPort = _T("");
-	memset(&m_LogFont, 0, sizeof(m_LogFont));
+/*	memset(&m_LogFont, 0, sizeof(m_LogFont));
 	m_LogFont.lfHeight = -9;
 	m_LogFont.lfWeight = FW_DONTCARE;
 	m_LogFont.lfPitchAndFamily = FIXED_PITCH | FF_DONTCARE;
-	strcpy_s(m_LogFont.lfFaceName, sizeof(m_LogFont.lfFaceName), "FixedSys");
+	strcpy_s(m_LogFont.lfFaceName, sizeof(m_LogFont.lfFaceName), "FixedSys");		*/
 	m_IsConnected = FALSE;
 	m_BgColor = CLR_BAR_BACKGROUND;
 	m_FgColor = CLR_MENU_TEXT_NORM;
@@ -137,11 +134,36 @@ CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 
 }
 
+///////////////////////////////////////////////////////////////////////////////
+
+CEVTSettingsDlg::~CEVTSettingsDlg()
+{
+	m_BgBrush.DeleteObject();
+}
+
 /////////////////////////////////////////////////////////////////////////////
 
 void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_COM_GRP, m_ComGrp);
+	DDX_Control(pDX, IDC_SCRN_GRP, m_ScrnGrp);
+
+	DDX_Control(pDX, IDC_DTRDSR, m_BtnDtrDsr);
+	DDX_Control(pDX, IDC_RTSCTS, m_BtnRtsCts);
+	DDX_Control(pDX, IDC_XONXOFF, m_BtnXonXoff);
+	DDX_Control(pDX, IDC_LINEWRAP, m_BtnLineWrap);
+	DDX_Control(pDX, IDC_VIEWWRAP, m_BtnViewWrap);
+	DDX_Control(pDX, IDC_NEWLINE, m_BtnNewLine);
+	DDX_Control(pDX, IDC_LOCALECHO, m_BtnEcho);		
+	DDX_Control(pDX, IDC_PORTCB, m_ComboPort);
+	DDX_Control(pDX, IDC_BAUDCB, m_ComboBaud);
+	DDX_Control(pDX, IDC_DATABITSCB, m_ComboDataBits);
+	DDX_Control(pDX, IDC_PARITYCB, m_ComboParity);
+	DDX_Control(pDX, IDC_STOPBITSCB, m_ComboStopBits);
+	DDX_Control(pDX, IDOK, m_BtnOK);
+	DDX_Control(pDX, IDCANCEL, m_BtnCancel);
+
 	DDX_Check(pDX, IDC_LINEWRAP, m_LineWrap);
 	DDX_Check(pDX, IDC_VIEWWRAP, m_ViewWrap);
 	DDX_CBString(pDX, IDC_BAUDCB, m_Baud);
@@ -168,7 +190,7 @@ END_MESSAGE_MAP()
 BOOL CEVTSettingsDlg::OnInitDialog() 
 {
 	CDialogEx::OnInitDialog();
-//	SetBackgroundColor(m_BgColor);
+	SetBackgroundColor(m_BgColor);
 	((CComboBox *)GetDlgItem(IDC_PORTCB))->EnableWindow(!m_IsConnected);
 	return TRUE;
 }
@@ -178,11 +200,11 @@ BOOL CEVTSettingsDlg::OnInitDialog()
 HBRUSH CEVTSettingsDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 
-/*	if(nCtlColor == CTLCOLOR_MSGBOX || nCtlColor == CTLCOLOR_DLG) {
+	if(nCtlColor == CTLCOLOR_MSGBOX || nCtlColor == CTLCOLOR_DLG || nCtlColor == CTLCOLOR_BTN || nCtlColor == CTLCOLOR_STATIC || nCtlColor == CTLCOLOR_EDIT) {
 		pDC->SetTextColor(m_FgColor);
 		pDC->SetBkColor(m_BgColor);
 		return (HBRUSH) m_BgBrush.GetSafeHandle();
-	}*/
+	}	
 	return CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
 }
 
