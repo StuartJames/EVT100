@@ -22,6 +22,13 @@
 
 #include "EVTLineObj.h"
 
+enum ScriptType_e{
+  SCRIPT_TYPE_NONE = 0,
+  SCRIPT_TYPE_ESP32,		// Classic reset sequence, sets DTR and RTS lines sequentially.
+  SCRIPT_TYPE_USBJTAG,  // Required when the device is connecting via its USB-JTAG-Serial peripheral.
+  SCRIPT_TYPE_CUSTOM,
+};
+
 const char CoSeDe[] = ";";				// Control Sequence Delimeter
 
  // Secondary thread function
@@ -42,6 +49,7 @@ protected:
 	BOOL					m_RTSCTS;
 	int						m_StopBits;
 	BOOL					m_XONXOFF;
+  BOOL					m_AutoReconnect;
 	BOOL					m_LocalEcho;
 	BOOL					m_NewLine;
 	Wrap_t				m_UserWrap;
@@ -53,6 +61,7 @@ protected:
 	int						m_ArgCount;
 	bool					m_ShowCodes;
 	int						m_EscState;
+  int						m_ScriptType;
 
 protected: 
 	void					GetSystemVars();
@@ -61,6 +70,7 @@ protected:
   void					DecLineIndex(int Dec);
 	void					ProcessCtrlSequ(LPSTR lpMessage, int *i);
 	void					ScreenErase(int Mode = 0);
+	void					RunConnectScript(void);
 
 public:
 	bool					m_IsConnected;
@@ -78,22 +88,22 @@ public:
 	int						m_Scrolled;
 	CString				Title;
 
-public:
 	bool					OpenConnection();
 	bool					SetupConnection();
 	void					CloseConnection();
+	void					Reconnect();
 	int						ReadCommBlock();
 	bool					SendHostByte(char cChar);
 	bool					SendHostMessage(const char* lpStrFmt, ...);
   bool					FormatScreenData(UINT uID);
   bool					FormatScreenData(const char* lpStrFmt, ...);
   bool					ProcessHostData(int nLength, LPSTR lpBlock);
+	void					SetDTR(bool State);
+	void					SetRTS(bool State);
 
-	public:
 	virtual BOOL	OnNewDocument();
 	virtual void	OnCloseDocument();
 
-public:
 	virtual				~CEVT100Doc();
 	virtual void	Serialize(CArchive& ar);   // overridden for document i/o
 #ifdef _DEBUG
@@ -101,8 +111,7 @@ public:
 	virtual void	Dump(CDumpContext& dc) const;
 #endif
 
-public:
-	afx_msg void OnViewSetfont();
+	afx_msg void	OnViewSetfont();
 
 protected:
 	afx_msg void	OnEditSettings();
@@ -112,3 +121,21 @@ protected:
 };
 
 /////////////////////////////////////////////////////////////////////////////
+
+inline void CEVT100Doc::SetDTR(bool State)
+{
+  if(m_IsConnected){
+		if(State) EscapeCommFunction(m_idComDev, SETDTR);
+		else EscapeCommFunction(m_idComDev, CLRDTR);
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+inline void CEVT100Doc::SetRTS(bool State)
+{
+  if(m_IsConnected){
+		if(State) EscapeCommFunction(m_idComDev, SETRTS);
+		else EscapeCommFunction(m_idComDev, CLRRTS);
+	}
+}

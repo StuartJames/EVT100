@@ -75,6 +75,7 @@ CEVT100View::CEVT100View()
   m_totalDev.cx = m_totalDev.cy = 0;
   m_pageDev.cx  = m_pageDev.cy  = 0;
   m_lineDev.cx  = m_lineDev.cy  = 0;
+	m_CaretPos = POINT(0, 0);
   m_bCenter = FALSE;            
   m_bInsideUpdate = FALSE;;
 }
@@ -161,6 +162,11 @@ MSG msg;
       return NULL;
     }
     switch(pDoc->m_EventType){
+      case EV_EVENT1:{
+        TRACE(_T("Reconnect\n"));
+        pDoc->Reconnect();
+        break;
+      }
       case EV_ERR:
       case EV_BREAK:
         pDoc->FormatScreenData(IDS_COMM_OVF_FRM_ERROR);
@@ -169,7 +175,7 @@ MSG msg;
 		    do{
 			    while (PeekMessage(&msg, NULL, 0, 0, PM_NOREMOVE)) AfxGetApp()->PumpMessage();
 				  if(nLength = pDoc->ReadCommBlock()){
-					  pDoc->ProcessHostData(nLength, (LPSTR)pDoc->m_InBlock);
+					  if(!m_Pause) pDoc->ProcessHostData(nLength, (LPSTR)pDoc->m_InBlock);
 	        }
 		    }
 				while (nLength > 0);
@@ -333,7 +339,6 @@ CFont *pOldFont = nullptr;
 CPoint ScrollPos;
 CRect rect;
 
-  if(m_Pause) return;
   ASSERT_VALID(pDoc);
   pDC->SetBkColor(BackCol);                                                       // required so that MemDC sets a blank canvas
   CXMemDC MemDC(pDC);
@@ -542,8 +547,9 @@ void CEVT100View::OnPause()
 
 void CEVT100View::OnUpdatePause(CCmdUI* pCmdUI) 
 {
+  if(!GetDocument()->m_IsConnected) m_Pause = false;
   pCmdUI->SetCheck(m_Pause);
-	pCmdUI->Enable(GetDocument()->m_IsConnected);
+//	pCmdUI->Enable(GetDocument()->m_IsConnected);
 }
 
 /////////////////////////////////////////////////////////////////////////////

@@ -81,9 +81,11 @@ public:
 	BOOL							m_RTSCTS;
   int								m_StopBits;
 	BOOL							m_XONXOFF;
+	BOOL							m_AutoReconnect;
 	CString						m_SerialPort;
 	LOGFONT						m_LogFont;
 	BOOL							m_IsConnected;
+  int								m_ScriptType;
 	CEVT100Btn				m_ComGrp;
 	CEVT100Btn				m_ScrnGrp;
 	CEVT100Btn				m_BtnDtrDsr;
@@ -94,9 +96,11 @@ public:
 	CEVT100Btn				m_BtnNewLine;
 	CEVT100Btn				m_BtnEcho;
 	CEVT100Btn				m_BtnBaud;
-	CEVT100Btn				m_BtnOK;
-	CEVT100Btn				m_BtnCancel;
-	CEVT100DropDown		m_ComboPort;
+  CEVT100Btn				m_BtnScripts;
+  CEVT100Btn				m_BtnAutoRecon;
+  CEVT100Btn				m_BtnOK;
+  CEVT100Btn				m_BtnCancel;
+  CEVT100DropDown		m_ComboPort;
 	CEVT100DropDown		m_ComboBaud;
 	CEVT100DropDown		m_ComboParity;
 	CEVT100DropDown		m_ComboDataBits;
@@ -105,7 +109,7 @@ public:
 	enum { IDD = IDD_SETTINGS };
 
 protected:
-	virtual void DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+	virtual void			DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
 
 	COLORREF					m_BgColor;
 	COLORREF					m_FgColor;
@@ -115,4 +119,41 @@ protected:
 	virtual	HBRUSH		OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
 
 	DECLARE_MESSAGE_MAP()
+
+public:
+   afx_msg void			OnBnClickedScripts();
+};
+
+/////////////////////////////////////////////////////////////////////////////
+// CEVTSettingsDlg dialog
+
+class CEVTScriptsDlg : public CDialogEx {
+public:
+										CEVTScriptsDlg(CWnd *pParent = NULL);  // standard constructor
+ 	virtual						~CEVTScriptsDlg();
+
+	CEVT100Btn				m_ScriptGrp;
+	CEVT100Btn				m_ScriptNone;
+	CEVT100Btn				m_ScriptESP32;
+	CEVT100Btn				m_ScriptUSBJTAG;
+	CEVT100Btn				m_ScriptCustom;
+  CEVT100Btn				m_BtnOK;
+  CEVT100Btn				m_BtnCancel;
+	BOOL							m_IsConnected;
+  int								m_ScriptType;
+
+	enum { IDD = IDD_SCRIPTS };
+
+protected:
+	virtual void			DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
+
+	COLORREF					m_BgColor;
+	COLORREF					m_FgColor;
+	CBrush						m_BgBrush;
+
+	virtual	BOOL			OnInitDialog();
+	virtual	HBRUSH		OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor);
+
+	DECLARE_MESSAGE_MAP()
+
 };

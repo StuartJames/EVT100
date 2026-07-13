@@ -40,6 +40,7 @@ public:
 	void										Initialize();
 	virtual BOOL						PreTranslateMessage(MSG* pMsg);
   void                    SetWindowTitle(CString Title);
+	void										UpdateToolbar(BOOL IsConnected);
 
 #ifdef _DEBUG
 	virtual void						AssertValid() const;

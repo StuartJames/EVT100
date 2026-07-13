@@ -242,7 +242,7 @@ int j, ExitState = ESC_PROC_NORMAL;                                       // def
           }
           else break;                                                       // error in control arguments
         }
-        else if(j >= 40 && j <=47){                                          // set background colour
+        else if(j >= 40 && j <= 47){                                          // set background colour
           m_CurrentAttr = (m_CurrentAttr & ~ATTR_BPALLET) | ((j - 40) << ATTR_BACK_SHIFT);
         }
         else if(j == 48){                                                   // set background colour
@@ -271,7 +271,8 @@ int j, ExitState = ESC_PROC_NORMAL;                                       // def
       pToken = strtok_s(m_EscapeArgs, CoSeDe, &pNextToken); 
       int k = atoi(pToken);
       if(k == 5){
-        SendHostMessage("\x1b[0n");
+        SendHostMessage("\x1b[0n");       // report device okay
+        TRACE("Request status '\x1b[5n'.\n");
       }
       else if(k == 6){
         SendHostMessage("\x1b[%d;%dR", m_CursorPos.x, m_CursorPos.y);

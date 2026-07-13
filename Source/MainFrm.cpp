@@ -254,11 +254,22 @@ void CMainFrame::OnAppAbout()
 {
 	CSplashWnd::ShowSplashScreen(0, IDB_SPLASH, this);
 }
+
 /////////////////////////////////////////////////////////////////////////////
 
 void CMainFrame::Initialize() 
 {
 	OnConnect();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CMainFrame::UpdateToolbar(BOOL IsConnected) 
+{
+  CMFCToolBar::ResetAllImages();
+  if(!IsConnected) m_wndToolBar.LoadBitmap(IDR_DISCONNECTED);
+  else m_wndToolBar.LoadBitmap(IDR_CONNECTED);
+  m_wndToolBar.Invalidate();
 }
 
 /////////////////////////////////////////////////////////////////////////////

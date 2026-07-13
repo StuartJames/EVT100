@@ -44,7 +44,7 @@ static char THIS_FILE[] = __FILE__;
 static char BASED_CODE szSettings[] = "Settings";
 static char BASED_CODE szVariables[] = "Variables";
 static char BASED_CODE szFont[] = "Font";
-static char BASED_CODE szFormat[] = "%d %d %d %d %d %d %d %d %d %d %d %5s";
+static char BASED_CODE szFormat[] = "%d %d %d %d %d %d %d %d %d %d %d %d %d %5s";
 static char BASED_CODE szRFFormat[] = "%ld %ld %d %d %d %[ -z]";
 static char BASED_CODE szWFFormat[] = "%ld %ld %d %d %d %s";
 static char BASED_CODE szSystem[] = "System";
@@ -97,7 +97,7 @@ UINT CommWatchProc(LPVOID lpParam)
 CEVT100Doc *pDoc = (CEVT100Doc *)lpParam;
 OVERLAPPED os;
 DWORD dwEventMask, dwEventType, dwTransfer;
-USHORT EventTest;
+USHORT EventMask;
 COMSTAT CommStatus;
 
   ZeroMemory(&os, sizeof(OVERLAPPED));
@@ -106,7 +106,7 @@ COMSTAT CommStatus;
    	AfxMessageBox(IDS_NOTHREAD, MB_OK | MB_ICONEXCLAMATION);
 	  return FALSE;
   }
-  dwEventMask = (EV_RXCHAR | EV_ERR | EV_BREAK);
+  dwEventMask = (EV_RXCHAR | EV_ERR | EV_BREAK | EV_EVENT1);
   if(!SetCommMask(pDoc->m_idComDev, dwEventMask)) return FALSE;
   while(pDoc->m_IsConnected){	// Loop until user requests disconnect
     dwEventType = 0;
@@ -115,18 +115,19 @@ COMSTAT CommStatus;
 	 	    GetOverlappedResult(pDoc->m_idComDev, &os, &dwTransfer, TRUE);
   		  os.Offset += dwTransfer;
 	    }
-  	}
-    EventTest = 1;
+    }
+    if(!dwEventType) dwEventType = EV_EVENT1;        // force a our reconnect event
+    EventMask = 0x0001;
     while(pDoc->m_IsConnected && (dwEventType & dwEventMask)){ // post a message for each event
-      if((dwEventType & EventTest) == EventTest){
-        pDoc->m_EventType = EventTest;
+      if((dwEventType & EventMask) == EventMask){
+        pDoc->m_EventType = EventMask;
         ResetEvent(pDoc->m_hPostEvent);   // notify primary thread that data is waiting
         ((CWnd *)(pDoc->m_pView))->PostMessage(WM_COMMNOTIFY, (WPARAM)pDoc->m_idComDev, MAKELONG(COM_EVENT, 0));
         WaitForSingleObject(pDoc->m_hPostEvent, INFINITE);  // Wait until WM_COMMNOTIFY is processed by the primary thread
-        if(EventTest == EV_ERR) ClearCommError(pDoc->m_idComDev, &dwTransfer, &CommStatus);
+        if(EventMask == EV_ERR) ClearCommError(pDoc->m_idComDev, &dwTransfer, &CommStatus);
       }
-      dwEventType &= ~EventTest;
-      EventTest += EventTest;
+      dwEventType &= ~EventMask; // clear the event bit
+      EventMask <<= 1;         // mask the next event bit
     }
   }
   CloseHandle(os.hEvent);
@@ -163,6 +164,7 @@ CEVT100Doc::CEVT100Doc()
   m_RTSCTS = TRUE;
   m_StopBits = 0;
   m_XONXOFF = FALSE;
+  m_AutoReconnect = FALSE;
   m_IsConnected = FALSE;
   m_ShowCodes = false;
   m_SerialPort="COM1";
@@ -225,6 +227,7 @@ void CEVT100Doc::GetSystemVars()
     &m_UserWrap.View, &m_RTSCTS,
     &m_DataBits, &m_DTRDSR, 
     &m_Parity, &m_StopBits,
+    &m_AutoReconnect, &m_ScriptType,
     &m_Baud, &temp, 10);
   if(strlen(temp) > 3 ) m_SerialPort = temp;
   m_SoftWrap.Line = m_UserWrap.Line;
@@ -243,6 +246,7 @@ char szBuffer[100];
     m_UserWrap.View, m_RTSCTS,
     m_DataBits, m_DTRDSR,
     m_Parity, m_StopBits,
+    m_AutoReconnect, m_ScriptType,
     m_Baud, (const char *)m_SerialPort);
   AfxGetApp()->WriteProfileString(szSettings, szVariables, szBuffer);
   WriteProfileFont(&m_LogFont);
@@ -345,6 +349,7 @@ CString cstr;
     ((CMainFrame*)AfxGetMainWnd())->SetWindowTitle(m_SerialPort);
     m_SoftWrap.Line = m_UserWrap.Line;                            // reset wrap to user settings
     m_SoftWrap.View = m_UserWrap.View;
+    RunConnectScript();
   }
   return m_IsConnected;
 }
@@ -394,12 +399,51 @@ DCB dcb;
 
 /////////////////////////////////////////////////////////////////////////////
 
+void CEVT100Doc::RunConnectScript()
+{
+  switch(m_ScriptType){
+    case SCRIPT_TYPE_NONE:{
+      break;
+    }
+    case SCRIPT_TYPE_ESP32:{
+      SetRTS(false);
+      SetDTR(false);      // Idle
+      Sleep(100);
+      SetDTR(true);       // Set IO0
+      SetRTS(false);
+      Sleep(100);
+      SetRTS(true);       // Reset. Calls inverted to go through (1,1) instead of (0,0)
+      SetDTR(false);
+      SetRTS(true);       // RTS set as Windows only propagates DTR on RTS setting
+      Sleep(100);
+      SetDTR(false);
+      SetRTS(false);      // Chip out of reset
+      break;
+    }
+    case SCRIPT_TYPE_USBJTAG:{
+      SetDTR(false);      // IO0 = HIGH
+      SetRTS(true);       // EN = LOW, chip in reset
+      Sleep(50);
+      SetDTR(true);       // IO0 = LOW
+      SetRTS(false);      // EN = HIGH, chip out of reset
+      Sleep(50);
+      SetDTR(false);      // IO0 = HIGH, done
+      break;
+    }
+    case SCRIPT_TYPE_CUSTOM:{
+      break;
+    }
+  }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
 void CEVT100Doc::CloseConnection()
 {
 POSITION firstViewPos;
 CEVT100View *pView;
 
-  if (!m_IsConnected) return;
+  if(!m_IsConnected) return;
   firstViewPos = GetFirstViewPosition();
 	pView = (CEVT100View *)GetNextView(firstViewPos);
   pView->SendMessage(WM_KILLFOCUS);
@@ -412,7 +456,16 @@ CEVT100View *pView;
   PurgeComm(m_idComDev, PURGE_TXABORT | PURGE_RXABORT | PURGE_TXCLEAR | PURGE_RXCLEAR);
   CloseHandle(m_idComDev);
   ((CMainFrame*)AfxGetMainWnd())->SetWindowTitle("");
+}
 
+/////////////////////////////////////////////////////////////////////////////
+
+void CEVT100Doc::Reconnect()
+{
+  if(m_IsConnected) CloseConnection();
+  Sleep(500);
+  if(m_AutoReconnect) OpenConnection();
+  ((CMainFrame*)AfxGetMainWnd())->UpdateToolbar(m_IsConnected);
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -543,6 +596,8 @@ CEVTSettingsDlg SettingsDlg;
   SettingsDlg.m_LocalEcho = m_LocalEcho;
   SettingsDlg.m_NewLine = m_NewLine;
   SettingsDlg.m_LogFont = m_LogFont;
+  SettingsDlg.m_AutoReconnect = m_AutoReconnect;
+  SettingsDlg.m_ScriptType = m_ScriptType;
   SettingsDlg.m_IsConnected = m_IsConnected;
   if(SettingsDlg.DoModal() == IDOK){
     m_Baud = atoi(SettingsDlg.m_Baud);
@@ -553,6 +608,7 @@ CEVTSettingsDlg SettingsDlg;
     m_RTSCTS = SettingsDlg.m_RTSCTS;
     m_StopBits = SettingsDlg.m_StopBits;
     m_XONXOFF = SettingsDlg.m_XONXOFF;
+    m_AutoReconnect = SettingsDlg.m_AutoReconnect;
     m_UserWrap.Line = SettingsDlg.m_LineWrap > 0;
     m_SoftWrap.Line = m_UserWrap.Line;
     m_UserWrap.View = SettingsDlg.m_ViewWrap> 0;
@@ -560,6 +616,7 @@ CEVTSettingsDlg SettingsDlg;
     m_LocalEcho = SettingsDlg.m_LocalEcho;
     m_NewLine = SettingsDlg.m_NewLine;
     m_LogFont = SettingsDlg.m_LogFont;
+    m_ScriptType = SettingsDlg.m_ScriptType;
     POSITION firstViewPos = GetFirstViewPosition();
     CEVT100View *pView = (CEVT100View *)GetNextView(firstViewPos);
     pView->SetFont(&m_LogFont);

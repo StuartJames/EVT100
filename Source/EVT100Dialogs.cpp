@@ -121,6 +121,7 @@ CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 	m_RTSCTS = FALSE;
 	m_StopBits = -1;
 	m_XONXOFF = FALSE;
+	m_AutoReconnect = FALSE;
 	m_SerialPort = _T("");
 /*	memset(&m_LogFont, 0, sizeof(m_LogFont));
 	m_LogFont.lfHeight = -9;
@@ -161,7 +162,9 @@ void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_DATABITSCB, m_ComboDataBits);
 	DDX_Control(pDX, IDC_PARITYCB, m_ComboParity);
 	DDX_Control(pDX, IDC_STOPBITSCB, m_ComboStopBits);
-	DDX_Control(pDX, IDOK, m_BtnOK);
+	DDX_Control(pDX, IDC_AUTO_RECONNECT, m_BtnAutoRecon);
+  DDX_Control(pDX, IDC_SCRIPTS, m_BtnScripts);
+  DDX_Control(pDX, IDOK, m_BtnOK);
 	DDX_Control(pDX, IDCANCEL, m_BtnCancel);
 
 	DDX_Check(pDX, IDC_LINEWRAP, m_LineWrap);
@@ -176,12 +179,14 @@ void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_CBIndex(pDX, IDC_STOPBITSCB, m_StopBits);
 	DDX_Check(pDX, IDC_XONXOFF, m_XONXOFF);
 	DDX_CBString(pDX, IDC_PORTCB, m_SerialPort);
+	DDX_Check(pDX, IDC_AUTO_RECONNECT, m_AutoReconnect);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
 BEGIN_MESSAGE_MAP(CEVTSettingsDlg, CDialogEx)
 	ON_WM_CTLCOLOR()
+	ON_BN_CLICKED(IDC_SCRIPTS, &CEVTSettingsDlg::OnBnClickedScripts)
 END_MESSAGE_MAP()
 
 
@@ -207,4 +212,83 @@ HBRUSH CEVTSettingsDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	}	
 	return CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
 }
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CEVTSettingsDlg::OnBnClickedScripts()
+{
+CEVTScriptsDlg ScriptDlg;
+
+  ScriptDlg.m_IsConnected = m_IsConnected;
+	ScriptDlg.m_ScriptType = m_ScriptType;
+	if(ScriptDlg.DoModal() == IDOK){
+    m_ScriptType = ScriptDlg.m_ScriptType;
+	}
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+/////////////////////////////////////////////////////////////////////////////
+
+CEVTScriptsDlg::CEVTScriptsDlg(CWnd* pParent /*=NULL*/)
+	: CDialogEx(CEVTScriptsDlg::IDD, pParent)
+{
+	m_IsConnected = FALSE;
+	m_ScriptType = 0;
+	m_BgColor = CLR_BAR_BACKGROUND;
+	m_FgColor = CLR_MENU_TEXT_NORM;
+	m_BgBrush.CreateSolidBrush(m_BgColor);
+
+}
+
+///////////////////////////////////////////////////////////////////////////////
+
+CEVTScriptsDlg::~CEVTScriptsDlg()
+{
+	m_BgBrush.DeleteObject();
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CEVTScriptsDlg::DoDataExchange(CDataExchange* pDX)
+{
+	CDialogEx::DoDataExchange(pDX);
+	DDX_Control(pDX, IDC_SCRIPT_GRP, m_ScriptGrp);
+	DDX_Control(pDX, IDC_SCRIPT_NONE, m_ScriptNone);
+	DDX_Control(pDX, IDC_SCRIPT_ESP32, m_ScriptESP32);
+	DDX_Control(pDX, IDC_SCRIPT_USBJTAG, m_ScriptUSBJTAG);
+	DDX_Control(pDX, IDC_SCRIPT_CUSTOM, m_ScriptCustom);
+	DDX_Control(pDX, IDOK, m_BtnOK);
+	DDX_Control(pDX, IDCANCEL, m_BtnCancel);
+	DDX_Radio(pDX, IDC_SCRIPT_NONE, m_ScriptType);
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+BEGIN_MESSAGE_MAP(CEVTScriptsDlg, CDialogEx)
+	ON_WM_CTLCOLOR()
+END_MESSAGE_MAP()
+
+/////////////////////////////////////////////////////////////////////////////
+
+BOOL CEVTScriptsDlg::OnInitDialog() 
+{
+	CDialogEx::OnInitDialog();
+	SetBackgroundColor(m_BgColor);
+	return TRUE;
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+HBRUSH CEVTScriptsDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+{
+
+	if(nCtlColor == CTLCOLOR_MSGBOX || nCtlColor == CTLCOLOR_DLG || nCtlColor == CTLCOLOR_BTN || nCtlColor == CTLCOLOR_STATIC || nCtlColor == CTLCOLOR_EDIT) {
+		pDC->SetTextColor(m_FgColor);
+		pDC->SetBkColor(m_BgColor);
+		return (HBRUSH) m_BgBrush.GetSafeHandle();
+	}	
+	return CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
+}
+
 
