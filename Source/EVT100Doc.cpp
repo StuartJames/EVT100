@@ -44,12 +44,14 @@ static char THIS_FILE[] = __FILE__;
 static char BASED_CODE szSettings[] = "Settings";
 static char BASED_CODE szVariables[] = "Variables";
 static char BASED_CODE szFont[] = "Font";
-static char BASED_CODE szFormat[] = "%d %d %d %d %d %d %d %d %d %d %d %d %d %5s";
+static char BASED_CODE szFormat[] = "%d %d %d %d %d %d %d %d %d %d %d %d %d %5s %250s";
 static char BASED_CODE szRFFormat[] = "%ld %ld %d %d %d %[ -z]";
 static char BASED_CODE szWFFormat[] = "%ld %ld %d %d %d %s";
 static char BASED_CODE szSystem[] = "System";
 static char BASED_CODE szFileList[] = "Recent File List";
 static char BASED_CODE szFileEntry[] = "File%d";
+
+char CEVT100Doc::m_CustomCommands[4][2] = {_T("D"), _T("R"), _T("U"), _T("W")};
 
 /////////////////////////////////////////////////////////////////////////////
 
@@ -217,7 +219,8 @@ CEVT100Doc::~CEVT100Doc()
 
 void CEVT100Doc::GetSystemVars()
 {
-  char temp[10] = {0};
+char Temp[10] = {0};
+char Path[_MAX_PATH] = {0};
 
   CString strBuffer = AfxGetApp()->GetProfileString(szSettings, szVariables);
   if (strBuffer.IsEmpty()) return;
@@ -227,9 +230,10 @@ void CEVT100Doc::GetSystemVars()
     &m_UserWrap.View, &m_RTSCTS,
     &m_DataBits, &m_DTRDSR, 
     &m_Parity, &m_StopBits,
-    &m_AutoReconnect, &m_ScriptType,
-    &m_Baud, &temp, 10);
-  if(strlen(temp) > 3 ) m_SerialPort = temp;
+    &m_AutoReconnect, &m_ResetType,
+    &m_Baud, &Temp, 10, &Path, _MAX_PATH);
+  if(strlen(Temp) > 3 ) m_SerialPort = Temp;
+  if(strlen(Path) > 1 ) m_ScriptFileName = Path;
   m_SoftWrap.Line = m_UserWrap.Line;
   m_SoftWrap.View = m_UserWrap.View;
 }
@@ -238,7 +242,7 @@ void CEVT100Doc::GetSystemVars()
 
 void CEVT100Doc::SaveSystemVars()
 {
-char szBuffer[100];
+char szBuffer[_MAX_PATH + 100];
 
   sprintf_s(szBuffer, sizeof(szBuffer), szFormat,
     m_XONXOFF, m_LocalEcho,
@@ -246,8 +250,9 @@ char szBuffer[100];
     m_UserWrap.View, m_RTSCTS,
     m_DataBits, m_DTRDSR,
     m_Parity, m_StopBits,
-    m_AutoReconnect, m_ScriptType,
-    m_Baud, (const char *)m_SerialPort);
+    m_AutoReconnect, m_ResetType,
+    m_Baud, (const char *)m_SerialPort,
+    (const char *)m_ScriptFileName);
   AfxGetApp()->WriteProfileString(szSettings, szVariables, szBuffer);
   WriteProfileFont(&m_LogFont);
 }
@@ -349,7 +354,7 @@ CString cstr;
     ((CMainFrame*)AfxGetMainWnd())->SetWindowTitle(m_SerialPort);
     m_SoftWrap.Line = m_UserWrap.Line;                            // reset wrap to user settings
     m_SoftWrap.View = m_UserWrap.View;
-    RunConnectScript();
+    RunConnectReset();
   }
   return m_IsConnected;
 }
@@ -399,13 +404,13 @@ DCB dcb;
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CEVT100Doc::RunConnectScript()
+void CEVT100Doc::RunConnectReset()
 {
-  switch(m_ScriptType){
-    case SCRIPT_TYPE_NONE:{
+  switch(m_ResetType){
+    case RESET_TYPE_NONE:{
       break;
     }
-    case SCRIPT_TYPE_ESP32:{
+    case RESET_TYPE_ESP32:{
       SetRTS(false);
       SetDTR(false);      // Idle
       Sleep(100);
@@ -420,7 +425,7 @@ void CEVT100Doc::RunConnectScript()
       SetRTS(false);      // Chip out of reset
       break;
     }
-    case SCRIPT_TYPE_USBJTAG:{
+    case RESET_TYPE_USBJTAG:{
       SetDTR(false);      // IO0 = HIGH
       SetRTS(true);       // EN = LOW, chip in reset
       Sleep(50);
@@ -430,10 +435,112 @@ void CEVT100Doc::RunConnectScript()
       SetDTR(false);      // IO0 = HIGH, done
       break;
     }
-    case SCRIPT_TYPE_CUSTOM:{
+    case RESET_TYPE_CUSTOM:{
+    	CFileException fe;
+    	CFile File;
+      char Script[MAXSCRIPT_SIZE + 1];
+	    if((File.Open((LPCSTR)m_ScriptFileName,CFile::modeRead | CFile::shareExclusive, &fe)) == 0){
+        AfxMessageBox(_T("Error: Could not open custom script file"));
+	    }
+	    else{
+        CWaitCursor Wait;
+		    TRY{
+  	      File.Read((LPVOID)Script, MAXSCRIPT_SIZE);
+          ProcessScript(Script);
+		    }
+		    CATCH(CException, e){
+			    AfxMessageBox(_T("Custom script read error"));
+		    }
+		    END_CATCH
+	    }
       break;
     }
   }
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+/* Custom reset strategy defined with a string.
+
+    CustomReset object is created as "rst = CustomReset(port, seq_str)"
+    and can be later executed simply with "rst()"
+
+    The seq_str input string consists of individual commands divided by "|".
+    Commands (e.g. R,0) are defined by a code (R) and an argument (0).
+
+    The commands are:
+    D: setDTR - 1=True / 0=False
+    R: setRTS - 1=True / 0=False
+    U: setDTRandRTS (Unix-only) - 0,0 / 0,1 / 1,0 / or 1,1
+    W: Wait (time delay ms) - positive integer number
+
+    e.g.
+    "D,0|R,1|W,100|D,1|R,0|W,50|D,0" represents the ClassicReset strategy
+    "U,1,1|U,0,1|W,100|U,1,0|W,50|U,0,0" represents the UnixTightReset strategy */
+
+void CEVT100Doc::ProcessScript(char *pScript)
+{
+int CommandArg = 0;
+int TokenIndex;
+char Tokens[MAXSCRIPT_SIZE + 1];
+char *pToken = nullptr, *pNextToken = nullptr;
+
+	memcpy(Tokens, pScript, strlen(pScript) + 1); // make a copy
+	pToken = strtok_s(Tokens, _T(" |,;"), &pNextToken); // get a token
+	while(pToken != nullptr){
+	  TokenIndex = FindToken(pToken); // see if it's a command
+	  switch(TokenIndex){
+      case RESET_SET_DTR:{
+			  pToken = strtok_s(nullptr, _T(" |,;"), &pNextToken);
+			  CommandArg = (pToken != nullptr) ? atol(pToken) : 0;
+        if(CommandArg) SetDTR(true);
+        else SetDTR(false);
+        break;
+      }
+      case RESET_SET_RTS:{
+			  pToken = strtok_s(nullptr, _T(" |,;"), &pNextToken);
+			  CommandArg = (pToken != nullptr) ? atol(pToken) : 0;
+        if(CommandArg) SetRTS(true);
+        else SetRTS(false);
+        break;
+      }
+      case RESET_SET_DTRRTS:{
+			  pToken = strtok_s(nullptr, _T(" |,;"), &pNextToken);
+			  CommandArg = (pToken != nullptr) ? atol(pToken) : 0;
+        if(CommandArg) SetDTR(true);
+        else SetDTR(false);
+			  pToken = strtok_s(nullptr, _T(" |,;"), &pNextToken);
+			  CommandArg = (pToken != nullptr) ? atol(pToken) : 0;
+        if(CommandArg) SetRTS(true);
+        else SetRTS(false);
+        break;
+      }
+      case RESET_WAIT:{
+			  pToken = strtok_s(nullptr, _T(" |,;"), &pNextToken);
+			  CommandArg = (pToken != nullptr) ? atol(pToken) : 0;
+        Sleep(CommandArg);
+        break;
+      }
+      default:{
+	      AfxMessageBox(_T("Invalid custom script sequence format\n"));
+        break;
+      }
+    }
+    pToken = strtok_s(nullptr, _T(" |,;"), &pNextToken); // get next token
+  }
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////
+
+int CEVT100Doc::FindToken(char *in)
+{
+int i = 0, len = (int)strlen(in);
+
+  while(m_CustomCommands[i][0] != 0){
+  	if((len == strlen(m_CustomCommands[i])) && (!_strnicmp(in, m_CustomCommands[i], strlen(m_CustomCommands[i])))) return i;
+  	++i;
+  }
+	return -1;
 }
 
 /////////////////////////////////////////////////////////////////////////////
@@ -581,6 +688,7 @@ void CEVT100Doc::OnEditSettings()
 char buf[34];
 CEVTSettingsDlg SettingsDlg;
 
+  SettingsDlg.m_pDoc = this;
   _itoa_s(m_Baud, buf, 34, 10);
   SettingsDlg.m_Baud = buf;
   _itoa_s(m_DataBits, buf, 34, 10);
@@ -597,7 +705,7 @@ CEVTSettingsDlg SettingsDlg;
   SettingsDlg.m_NewLine = m_NewLine;
   SettingsDlg.m_LogFont = m_LogFont;
   SettingsDlg.m_AutoReconnect = m_AutoReconnect;
-  SettingsDlg.m_ScriptType = m_ScriptType;
+  SettingsDlg.m_ResetType = m_ResetType;
   SettingsDlg.m_IsConnected = m_IsConnected;
   if(SettingsDlg.DoModal() == IDOK){
     m_Baud = atoi(SettingsDlg.m_Baud);
@@ -616,7 +724,7 @@ CEVTSettingsDlg SettingsDlg;
     m_LocalEcho = SettingsDlg.m_LocalEcho;
     m_NewLine = SettingsDlg.m_NewLine;
     m_LogFont = SettingsDlg.m_LogFont;
-    m_ScriptType = SettingsDlg.m_ScriptType;
+    m_ResetType = SettingsDlg.m_ResetType;
     POSITION firstViewPos = GetFirstViewPosition();
     CEVT100View *pView = (CEVT100View *)GetNextView(firstViewPos);
     pView->SetFont(&m_LogFont);
@@ -696,3 +804,43 @@ LOGFONT newlf;
 		m_LogFont = newlf;
 	}
 }
+
+/////////////////////////////////////////////////////////////////////////////
+
+BOOL CEVT100Doc::OnGetFileName(void)
+{
+BOOL result = FALSE;
+int cp, cp2;
+CMainFrame* pWnd = (CMainFrame*)AfxGetMainWnd();
+
+CString DirName = _T("");
+CString FileName = _T("");               // and filename
+	CString NewFileName = m_strPathName;
+  if(!NewFileName.IsEmpty()){
+    if((cp = NewFileName.ReverseFind('\\')) != -1){
+      DirName = NewFileName.Left(cp++); // save defined path
+      if((cp2 = NewFileName.Find('.')) != -1) FileName = NewFileName.Mid(cp,cp2 - cp); // and filename
+    }
+    else{
+      DirName = ""; // no path defined
+      if((cp2 = NewFileName.Find('.')) != -1) FileName = NewFileName.Left(cp2); // get defined filename 
+    }
+  }
+  CFileDialog fileDlg(true, NULL, NULL, OFN_HIDEREADONLY | OFN_OVERWRITEPROMPT | OFN_EXPLORER, NULL, NULL, 0);
+	fileDlg.m_ofn.lStructSize = sizeof(OPENFILENAME); 
+	fileDlg.m_ofn.lpstrFilter = _T("Text Files(*.txt)\0*.txt\0All Files(*.*)\0*.*\0");
+  fileDlg.m_ofn.lpstrInitialDir = DirName.GetBuffer(DirName.GetLength());
+  fileDlg.m_ofn.lpstrFile = FileName.GetBuffer(_MAX_PATH);
+  fileDlg.m_ofn.nMaxFile = _MAX_PATH;
+	fileDlg.m_ofn.lpstrDefExt = _T("txt");
+	fileDlg.m_ofn.nMaxCustFilter++;
+  fileDlg.m_ofn.nFilterIndex = 1;
+  if(fileDlg.DoModal() == IDOK){
+    m_ScriptFileName = fileDlg.GetPathName();
+    result = TRUE;
+  }
+  DirName.ReleaseBuffer(-1);
+  FileName.ReleaseBuffer(-1);
+  return result;
+}
+

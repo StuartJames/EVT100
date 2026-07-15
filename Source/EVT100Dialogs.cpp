@@ -110,6 +110,7 @@ CBitmap Bitmap;
 CEVTSettingsDlg::CEVTSettingsDlg(CWnd* pParent /*=NULL*/)
 	: CDialogEx(CEVTSettingsDlg::IDD, pParent)
 {
+	m_pDoc = nullptr;
 	m_LineWrap = FALSE;
 	m_ViewWrap = FALSE;
 	m_Baud = _T("");
@@ -163,7 +164,7 @@ void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 	DDX_Control(pDX, IDC_PARITYCB, m_ComboParity);
 	DDX_Control(pDX, IDC_STOPBITSCB, m_ComboStopBits);
 	DDX_Control(pDX, IDC_AUTO_RECONNECT, m_BtnAutoRecon);
-  DDX_Control(pDX, IDC_SCRIPTS, m_BtnScripts);
+  DDX_Control(pDX, IDC_CONNECT_RESET, m_BtnReset);
   DDX_Control(pDX, IDOK, m_BtnOK);
 	DDX_Control(pDX, IDCANCEL, m_BtnCancel);
 
@@ -186,7 +187,7 @@ void CEVTSettingsDlg::DoDataExchange(CDataExchange* pDX)
 
 BEGIN_MESSAGE_MAP(CEVTSettingsDlg, CDialogEx)
 	ON_WM_CTLCOLOR()
-	ON_BN_CLICKED(IDC_SCRIPTS, &CEVTSettingsDlg::OnBnClickedScripts)
+	ON_BN_CLICKED(IDC_SCRIPTS, &CEVTSettingsDlg::OnBnClickedReset)
 END_MESSAGE_MAP()
 
 
@@ -215,14 +216,17 @@ HBRUSH CEVTSettingsDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CEVTSettingsDlg::OnBnClickedScripts()
+void CEVTSettingsDlg::OnBnClickedReset()
 {
-CEVTScriptsDlg ScriptDlg;
+CEVTConnectResetDlg ScriptDlg;
 
+  ScriptDlg.m_pDoc = m_pDoc;
   ScriptDlg.m_IsConnected = m_IsConnected;
-	ScriptDlg.m_ScriptType = m_ScriptType;
+	ScriptDlg.m_ResetType = m_ResetType;
+	ScriptDlg.m_CustomPath = m_pDoc->m_ScriptFileName;
 	if(ScriptDlg.DoModal() == IDOK){
-    m_ScriptType = ScriptDlg.m_ScriptType;
+    m_ResetType = ScriptDlg.m_ResetType;
+		m_pDoc->m_ScriptFileName = ScriptDlg.m_CustomPath;
 	}
 }
 
@@ -230,48 +234,53 @@ CEVTScriptsDlg ScriptDlg;
 
 /////////////////////////////////////////////////////////////////////////////
 
-CEVTScriptsDlg::CEVTScriptsDlg(CWnd* pParent /*=NULL*/)
-	: CDialogEx(CEVTScriptsDlg::IDD, pParent)
+CEVTConnectResetDlg::CEVTConnectResetDlg(CWnd* pParent /*=NULL*/)
+	: CDialogEx(CEVTConnectResetDlg::IDD, pParent)
 {
+	m_pDoc = nullptr;
 	m_IsConnected = FALSE;
-	m_ScriptType = 0;
+	m_ResetType = 0;
 	m_BgColor = CLR_BAR_BACKGROUND;
 	m_FgColor = CLR_MENU_TEXT_NORM;
 	m_BgBrush.CreateSolidBrush(m_BgColor);
-
+	m_CustomPath.Format(_T(""));
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 
-CEVTScriptsDlg::~CEVTScriptsDlg()
+CEVTConnectResetDlg::~CEVTConnectResetDlg()
 {
 	m_BgBrush.DeleteObject();
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-void CEVTScriptsDlg::DoDataExchange(CDataExchange* pDX)
+void CEVTConnectResetDlg::DoDataExchange(CDataExchange* pDX)
 {
 	CDialogEx::DoDataExchange(pDX);
 	DDX_Control(pDX, IDC_SCRIPT_GRP, m_ScriptGrp);
-	DDX_Control(pDX, IDC_SCRIPT_NONE, m_ScriptNone);
-	DDX_Control(pDX, IDC_SCRIPT_ESP32, m_ScriptESP32);
-	DDX_Control(pDX, IDC_SCRIPT_USBJTAG, m_ScriptUSBJTAG);
-	DDX_Control(pDX, IDC_SCRIPT_CUSTOM, m_ScriptCustom);
+	DDX_Control(pDX, IDC_PATH_GRP, m_PathGrp);
+	DDX_Control(pDX, IDC_SCRIPT_TYPE, m_ScriptTypeCtrl);
+	DDX_Control(pDX, IDC_PATH_BROWSE, m_PathBrowseBtn);
+//	DDX_Control(pDX, IDC_CUSTOM_PATH, m_ScriptPathCtrl);
 	DDX_Control(pDX, IDOK, m_BtnOK);
 	DDX_Control(pDX, IDCANCEL, m_BtnCancel);
-	DDX_Radio(pDX, IDC_SCRIPT_NONE, m_ScriptType);
+
+	DDX_CBIndex(pDX, IDC_SCRIPT_TYPE, m_ResetType);
+	DDX_Text(pDX, IDC_CUSTOM_PATH, m_CustomPath);
 }
 
 /////////////////////////////////////////////////////////////////////////////
 
-BEGIN_MESSAGE_MAP(CEVTScriptsDlg, CDialogEx)
+BEGIN_MESSAGE_MAP(CEVTConnectResetDlg, CDialogEx)
 	ON_WM_CTLCOLOR()
+	ON_CBN_SELCHANGE(IDC_SCRIPT_TYPE, &CEVTConnectResetDlg::OnCbnSelchangeScriptType)
+	ON_BN_CLICKED(IDC_PATH_BROWSE, &CEVTConnectResetDlg::OnBnClickedPathBrowse)
 END_MESSAGE_MAP()
 
 /////////////////////////////////////////////////////////////////////////////
 
-BOOL CEVTScriptsDlg::OnInitDialog() 
+BOOL CEVTConnectResetDlg::OnInitDialog() 
 {
 	CDialogEx::OnInitDialog();
 	SetBackgroundColor(m_BgColor);
@@ -280,7 +289,7 @@ BOOL CEVTScriptsDlg::OnInitDialog()
 
 /////////////////////////////////////////////////////////////////////////////
 
-HBRUSH CEVTScriptsDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
+HBRUSH CEVTConnectResetDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 {
 
 	if(nCtlColor == CTLCOLOR_MSGBOX || nCtlColor == CTLCOLOR_DLG || nCtlColor == CTLCOLOR_BTN || nCtlColor == CTLCOLOR_STATIC || nCtlColor == CTLCOLOR_EDIT) {
@@ -291,4 +300,17 @@ HBRUSH CEVTScriptsDlg::OnCtlColor(CDC* pDC, CWnd* pWnd, UINT nCtlColor)
 	return CDialogEx::OnCtlColor(pDC, pWnd, nCtlColor);
 }
 
+/////////////////////////////////////////////////////////////////////////////
 
+void CEVTConnectResetDlg::OnCbnSelchangeScriptType()
+{
+}
+
+/////////////////////////////////////////////////////////////////////////////
+
+void CEVTConnectResetDlg::OnBnClickedPathBrowse()
+{
+	m_pDoc->OnGetFileName();
+	m_CustomPath = m_pDoc->m_ScriptFileName;
+	UpdateData(FALSE);
+}

@@ -22,6 +22,7 @@
 
 #include "EVT100Button.h"
 #include "EVT100DropDown.h"
+#include "EVT100Doc.h"
 
 void PASCAL DDX_HexText(CDataExchange *pDX, int nIDC, long& value);
 void PASCAL DDV_HexText(CDataExchange *pDX, long& value, BOOL &flag);
@@ -70,6 +71,7 @@ public:
 
 	virtual						~CEVTSettingsDlg();
 
+	CEVT100Doc			 *m_pDoc;
 	BOOL							m_LineWrap;
 	BOOL							m_ViewWrap;
 	CString						m_Baud;
@@ -85,7 +87,7 @@ public:
 	CString						m_SerialPort;
 	LOGFONT						m_LogFont;
 	BOOL							m_IsConnected;
-  int								m_ScriptType;
+  int								m_ResetType;
 	CEVT100Btn				m_ComGrp;
 	CEVT100Btn				m_ScrnGrp;
 	CEVT100Btn				m_BtnDtrDsr;
@@ -96,7 +98,7 @@ public:
 	CEVT100Btn				m_BtnNewLine;
 	CEVT100Btn				m_BtnEcho;
 	CEVT100Btn				m_BtnBaud;
-  CEVT100Btn				m_BtnScripts;
+  CEVT100Btn				m_BtnReset;
   CEVT100Btn				m_BtnAutoRecon;
   CEVT100Btn				m_BtnOK;
   CEVT100Btn				m_BtnCancel;
@@ -121,28 +123,30 @@ protected:
 	DECLARE_MESSAGE_MAP()
 
 public:
-   afx_msg void			OnBnClickedScripts();
+   afx_msg void			OnBnClickedReset();
 };
 
 /////////////////////////////////////////////////////////////////////////////
 // CEVTSettingsDlg dialog
 
-class CEVTScriptsDlg : public CDialogEx {
+class CEVTConnectResetDlg : public CDialogEx {
 public:
-										CEVTScriptsDlg(CWnd *pParent = NULL);  // standard constructor
- 	virtual						~CEVTScriptsDlg();
+										CEVTConnectResetDlg(CWnd *pParent = NULL);  // standard constructor
+ 	virtual						~CEVTConnectResetDlg();
 
-	CEVT100Btn				m_ScriptGrp;
-	CEVT100Btn				m_ScriptNone;
-	CEVT100Btn				m_ScriptESP32;
-	CEVT100Btn				m_ScriptUSBJTAG;
-	CEVT100Btn				m_ScriptCustom;
+	CEVT100Doc			 *m_pDoc;
+	CEVT100DropDown		m_ScriptTypeCtrl;
+	CEVT100Btn				m_PathBrowseBtn;
+	CEdit							m_ScriptPathCtrl;
   CEVT100Btn				m_BtnOK;
   CEVT100Btn				m_BtnCancel;
+	CEVT100Btn				m_ScriptGrp;
+	CEVT100Btn				m_PathGrp;
 	BOOL							m_IsConnected;
-  int								m_ScriptType;
+  int								m_ResetType;
+	CString						m_CustomPath;
 
-	enum { IDD = IDD_SCRIPTS };
+	enum { IDD = IDD_CONNECT_RESET };
 
 protected:
 	virtual void			DoDataExchange(CDataExchange* pDX);    // DDX/DDV support
@@ -156,4 +160,7 @@ protected:
 
 	DECLARE_MESSAGE_MAP()
 
+public:
+	afx_msg void OnCbnSelchangeScriptType();
+	afx_msg void OnBnClickedPathBrowse();
 };

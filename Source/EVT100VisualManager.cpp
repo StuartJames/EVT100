@@ -411,23 +411,23 @@ void CVT100VisualManager::OnFillButtonInterior(CDC* pDC, CMFCToolBarButton* pBut
 	ASSERT_VALID(pButton);
 
 	if (pButton->IsKindOf(RUNTIME_CLASS(CMFCShowAllButton))) {
-		if (state == ButtonsIsHighlighted) {
+		if(state == ButtonsIsHighlighted){
 			CDrawingManager dm(*pDC);
 			dm.HighlightRect(rect);
 		}
 		return;
 	}
-	if (!m_bEnableToolbarButtonFill) {
+	if(!m_bEnableToolbarButtonFill) {
 		BOOL bIsPopupMenu = FALSE;
 		CMFCToolBarMenuButton* pMenuButton = DYNAMIC_DOWNCAST(CMFCToolBarMenuButton, pButton);
-		if (pMenuButton != NULL) {
+		if(pMenuButton != NULL) {
 			bIsPopupMenu = pMenuButton->GetParentWnd() != NULL && pMenuButton->GetParentWnd()->IsKindOf(RUNTIME_CLASS(CMFCPopupMenuBar));
 		}
-		if (!bIsPopupMenu) {
+		if(!bIsPopupMenu) {
 			return;
 		}
 	}
-	if (!pButton->IsKindOf(RUNTIME_CLASS(CMFCOutlookBarPaneButton)) && !CMFCToolBar::IsCustomizeMode() &&	state != ButtonsIsHighlighted && (pButton->m_nStyle & (TBBS_CHECKED | TBBS_INDETERMINATE))) {
+	if(!pButton->IsKindOf(RUNTIME_CLASS(CMFCOutlookBarPaneButton)) && !CMFCToolBar::IsCustomizeMode() &&	state != ButtonsIsHighlighted && (pButton->m_nStyle & (TBBS_CHECKED | TBBS_INDETERMINATE))) {
 	}				// do nothing
 }
 

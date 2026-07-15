@@ -38,6 +38,7 @@ constexpr auto MAXROW                 = 200;
 constexpr auto MAXCOL                 = 255;
 constexpr auto TABSTOP                = 8;
 constexpr auto MAXMRU                 = 8;
+constexpr auto MAXSCRIPT_SIZE         = 200;
 
 constexpr auto ATTR_MARKER		        = 0x00000001;
 constexpr auto ATTR_BOLD		          = 0x00000002;

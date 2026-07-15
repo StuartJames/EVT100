@@ -22,16 +22,23 @@
 
 #include "EVTLineObj.h"
 
-enum ScriptType_e{
-  SCRIPT_TYPE_NONE = 0,
-  SCRIPT_TYPE_ESP32,		// Classic reset sequence, sets DTR and RTS lines sequentially.
-  SCRIPT_TYPE_USBJTAG,  // Required when the device is connecting via its USB-JTAG-Serial peripheral.
-  SCRIPT_TYPE_CUSTOM,
+enum ResetType_e{
+  RESET_TYPE_NONE = 0,
+  RESET_TYPE_ESP32,		// Classic reset sequence, sets DTR and RTS lines sequentially.
+  RESET_TYPE_USBJTAG,  // Required when the device is connecting via its USB-JTAG-Serial peripheral.
+  RESET_TYPE_CUSTOM,
+};
+
+enum ResetCommand_e{
+  RESET_SET_DTR = 0,
+  RESET_SET_RTS,		
+  RESET_SET_DTRRTS,
+  RESET_WAIT,
 };
 
 const char CoSeDe[] = ";";				// Control Sequence Delimeter
 
- // Secondary thread function
+// Secondary thread function
 UINT CommWatchProc(LPVOID lpParam);
 
 class CEVT100View;
@@ -61,7 +68,9 @@ protected:
 	int						m_ArgCount;
 	bool					m_ShowCodes;
 	int						m_EscState;
-  int						m_ScriptType;
+  int						m_ResetType;
+
+	static char		m_CustomCommands[4][2];
 
 protected: 
 	void					GetSystemVars();
@@ -70,7 +79,9 @@ protected:
   void					DecLineIndex(int Dec);
 	void					ProcessCtrlSequ(LPSTR lpMessage, int *i);
 	void					ScreenErase(int Mode = 0);
-	void					RunConnectScript(void);
+	void					RunConnectReset(void);
+	void					ProcessScript(char *pScript);
+	int						FindToken(char *in);
 
 public:
 	bool					m_IsConnected;
@@ -86,7 +97,8 @@ public:
 	CPoint				m_CursorSave;
 	int						m_TopRow;
 	int						m_Scrolled;
-	CString				Title;
+	CString				m_Title;
+  CString       m_ScriptFileName;
 
 	bool					OpenConnection();
 	bool					SetupConnection();
@@ -100,6 +112,7 @@ public:
   bool					ProcessHostData(int nLength, LPSTR lpBlock);
 	void					SetDTR(bool State);
 	void					SetRTS(bool State);
+  BOOL          OnGetFileName(void);
 
 	virtual BOOL	OnNewDocument();
 	virtual void	OnCloseDocument();
